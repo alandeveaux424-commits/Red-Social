@@ -1,55 +1,289 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Red UNAM</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="style/styles.css">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="style/styles.css">
 </head>
+
 <body>
 
-<nav class="navbar navbar-dark bg-primary px-3">
-  <span class="navbar-brand mb-0 h1">Red UNAM</span>
-  <div class="ms-auto">
-    <img src="images/logoUNAM.png
-    " alt="Logo" class="logo-navbar">
-  </div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
 
+    <a class="navbar-brand d-flex align-items-center" href="#">
+      <img src="images/logoUNAM.png" width="45" class="me-2">
+      Red UNAM
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+
+        <li class="nav-item">
+          <a class="nav-link active">Inicio</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link">Noticias</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link">Grupos</a>
+        </li>
+
+      </ul>
+
+      <div id="authArea">
+        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+          Iniciar sesión
+        </button>
+      </div>
+
+    </div>
+  </div>
 </nav>
 
-<div class="container d-flex justify-content-center align-items-center mt-5">
-<div class="card shadow-lg p-4 registro-card">
+<div class="container mt-4 text-center">
+  <h1>Bienvenido a Red UNAM</h1>
+  <p>Comunidad estudiantil universitaria</p>
+</div>
 
-  <h3 class="text-center mb-2">Iniciar sesión</h3>
-  <p class="text-center text-muted mb-4">Accede con tu cuenta UNAM</p>
+<div class="container mt-4">
+  <h3 class="text-center mb-3">Gaceta UNAM</h3>
 
-  <form id="formLogin">
-
-    <input type="text" class="form-control mb-3" id="email" placeholder="Correo institucional">
-
-    <input type="text" class="form-control mb-3" id="cuenta" placeholder="Número de cuenta">
-
-    <input type="password" class="form-control mb-3" id="password" placeholder="Contraseña">
-
-    <button class="btn btn-primary w-100">Iniciar sesión</button>
-
-  </form>
-
-  <!-- 🔗 LINK A REGISTRO -->
-  <p class="text-center mt-3">
-    ¿No tienes cuenta? 
-    <a href="registro.html" class="link-primary">Regístrate</a>
-  </p>
-
-  <!-- 🖼️ Imagen -->
-  <div class="imagen-container mt-4">
-    <img src="images/pumaUNAM.png" alt="UNAM" class="img-fluid imagen-unam">
+  <div class="ratio ratio-16x9 border rounded shadow">
+    <iframe 
+      src="https://www.gaceta.unam.mx/"
+      style="border:0;"
+      loading="lazy">
+    </iframe>
   </div>
 
-  <div id="mensaje" class="mt-3 text-center"></div>
+  <p class="text-center mt-2">
+    Si no se muestra, puedes verla aquí:
+    <a href="https://www.gaceta.unam.mx/" target="_blank">
+      Ir a Gaceta UNAM
+    </a>
+  </p>
+</div>
 
+<div class="modal fade" id="loginModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    
+    <div class="modal-content">
+      
+      <div class="card login-card p-4">
+
+        <div class="text-end">
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="text-center mb-3">
+          <h3>Iniciar sesión</h3>
+          <p>Accede con tu cuenta UNAM</p>
+        </div>
+
+        <form id="formLogin">
+
+          <input type="text" class="form-control mb-3" id="nombre" placeholder="Nombre completo">
+          <input type="text" class="form-control mb-3" id="email" placeholder="Correo institucional">
+          <input type="text" class="form-control mb-3" id="cuenta" placeholder="Número de cuenta">
+          <input type="password" class="form-control mb-3" id="password" placeholder="Contraseña">
+
+          <button class="btn btn-primary w-100">Iniciar sesión</button>
+
+        </form>
+
+        <p class="text-center mt-3">
+          ¿No tienes cuenta?
+          <a href="registro.html" class="link-primary fw-bold">Regístrate</a>
+        </p>
+
+        <div id="mensaje" class="mt-3 text-center"></div>
+
+      </div>
+
+    </div>
+
+  </div>
 </div>
-</div>
+
+<script>
+const usuariosBase = [
+  {
+    nombre: "Nathan Osnaya",
+    email: "nathanosnaya321@aragon.unam.mx",
+    cuenta: "321122876",
+    password: "papafrita"
+  },
+  {
+    nombre: "Jesús Espejel",
+    email: "jesusespejel321@aragon.unam.mx",
+    cuenta: "321275257",
+    password: "todosconmike"
+  },
+  {
+   nombre: "Alan Deveaux",
+    email: "alandeveaux424@aragon.unam.mx",
+    cuenta: "424131829",
+    password: "Ellanoteama1" 
+  },
+  {
+    nombre: "Cristofer Esquivel",
+    email: "cristoferesquivel06@aragon.unam.mx ",
+    cuenta: "321009906",
+    password: "ahorcarukas" 
+  },
+  {
+    nombre: "León Herrera",
+    email: "leonherrera321@aragon.unam.mx",
+    cuenta: "321044185",
+    password: "mondongo" 
+  },
+  {
+    nombre: "Magdiel Torres",
+    email: "magdieltorres321@aragon.unam.mx",
+    cuenta: "321110099",
+    password: "1234567890abcde" 
+  },
+  {
+    nombre: "Carlos García",
+    email: "carlosgarcia08@aragon.unam.mx",
+    cuenta: "321058708",
+    password: "NoSoyGaySoloJuegoConRugal69." 
+  }
+];
+
+if (!localStorage.getItem("usuarios")) {
+  localStorage.setItem("usuarios", JSON.stringify(usuariosBase));
+}
+
+const form = document.getElementById("formLogin");
+const mensaje = document.getElementById("mensaje");
+
+if (form) {
+  form.addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const nombre = document.getElementById("nombre");
+    const email = document.getElementById("email");
+    const cuenta = document.getElementById("cuenta");
+    const password = document.getElementById("password");
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    [nombre, email, cuenta, password].forEach(i => {
+      i.classList.remove("is-invalid", "is-valid");
+    });
+
+    let error = false;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!nombre.value.trim()) {
+      nombre.classList.add("is-invalid");
+      error = true;
+    }
+
+    if (!emailRegex.test(email.value)) {
+      email.classList.add("is-invalid");
+      error = true;
+    }
+
+    if (cuenta.value.length !== 9) {
+      cuenta.classList.add("is-invalid");
+      error = true;
+    }
+
+    if (!password.value) {
+      password.classList.add("is-invalid");
+      error = true;
+    }
+
+    if (error) {
+      return mostrarError("Completa correctamente los campos");
+    }
+
+    const usuario = usuarios.find(u =>
+      u.nombre === nombre.value.trim() &&
+      u.email.toLowerCase() === email.value.trim().toLowerCase() &&
+      u.cuenta === cuenta.value.trim() &&
+      u.password === password.value
+    );
+
+    if (!usuario) {
+      [nombre, email, cuenta, password].forEach(i => i.classList.add("is-invalid"));
+      return mostrarError("Datos incorrectos");
+    }
+
+    [nombre, email, cuenta, password].forEach(i => i.classList.add("is-valid"));
+    localStorage.setItem("sesion", JSON.stringify(usuario));
+    mostrarExito("Bienvenido " + usuario.nombre);
+
+    setTimeout(() => {
+      const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+      modal.hide();
+
+      actualizarBotonSesion();
+    }, 1000);
+  });
+}
+
+function mostrarError(msg) {
+  mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
+}
+
+function mostrarExito(msg) {
+  mensaje.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+}
+
+function actualizarBotonSesion() {
+  const authArea = document.getElementById("authArea");
+  if (!authArea) return;
+
+  const sesion = JSON.parse(localStorage.getItem("sesion"));
+
+  if (sesion) {
+    authArea.innerHTML = `
+      <div class="dropdown">
+        <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+          Perfil
+        </button>
+        <ul class="dropdown-menu">
+          <li class="dropdown-item-text"><strong>${sesion.nombre}</strong></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><button class="dropdown-item" id="cerrarSesion">Cerrar sesión</button></li>
+        </ul>
+      </div>
+    `;
+
+    document.getElementById("cerrarSesion").addEventListener("click", () => {
+      localStorage.removeItem("sesion");
+      actualizarBotonSesion();
+    });
+
+  } else {
+    authArea.innerHTML = `
+      <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+        Iniciar sesión
+      </button>
+    `;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", actualizarBotonSesion);
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
