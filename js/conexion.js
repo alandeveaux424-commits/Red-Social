@@ -1,38 +1,20 @@
-// 1. Conexión (Reemplaza con tus llaves de Settings > API)
-const supabaseUrl = 'https://csicfyvadluenphbfkot.supabase.co/rest/v1/';
+/**
+ * ARCHIVO: js/conexion.js
+ * 
+ * Este archivo inicializa la conexión con Supabase. 
+ * Debe cargarse en el HTML DESPUÉS de la librería de Supabase 
+ * y ANTES de tus archivos de lógica (registro.js o login.js).
+ */
+
+// 1. URL base de tu proyecto (Sin /rest/v1/ al final)
+const supabaseUrl = 'https://csicfyvadluenphbfkot.supabase.co';
+
+// 2. Tu llave pública (Anon Key) obtenida de Settings > API
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWNmeXZhZGx1ZW5waGJma290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTg3NzgsImV4cCI6MjA5MzQzNDc3OH0.R7mAUDg3-SWQWjIQM0qLjgBWQVK_4kybzK5Gi-AIzZ8';
-const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function registrarUsuario(event) {
-    event.preventDefault(); // Evita que la página se recargue
+// 3. Crear el cliente y asignarlo al objeto global 'window'[cite: 1]
+// Esto permite que uses 'window.supabaseClient' en cualquier otra parte de tu código.
+window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const nombre = document.getElementById('nombre').value;
-    const email = document.getElementById('email').value;
-    const cuenta = document.getElementById('cuenta').value;
-    const password = document.getElementById('password').value;
-
-    // VALIDACIONES (Las mismas que tenías en PHP)
-    if (!email.endsWith("@unam.mx") && !email.endsWith(".unam.mx")) {
-        alert("Solo correos de la UNAM");
-        return;
-    }
-
-    if (cuenta.length !== 9) {
-        alert("La cuenta debe tener 9 dígitos");
-        return;
-    }
-
-    // INSERTAR EN SUPABASE
-    const { data, error } = await _supabase
-        .from('usuarios') // Tu tabla en Supabase
-        .insert([
-            { nombre, email, numero_cuenta: cuenta, password }
-        ]);
-
-    if (error) {
-        console.error("Error:", error.message);
-        alert("Error al registrar: " + error.message);
-    } else {
-        alert("¡Registro exitoso!");
-    }
-}
+// Mensaje de confirmación en consola para depuración
+console.log("Conexión con Supabase configurada correctamente.");
