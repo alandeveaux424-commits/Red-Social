@@ -1,76 +1,102 @@
 const mensaje = document.getElementById("mensaje");
 
+// ========================
+// REGISTRO CON SUPABASE
+// ========================
 const formRegistro = document.getElementById("formRegistro");
 
 if (formRegistro) {
-  formRegistro.addEventListener("submit", function(e) {
+  formRegistro.addEventListener("submit", async function(e) { // Se agrega async
     e.preventDefault();
 
-    const nombre = document.getElementById("nombre").value;
-    const email = document.getElementById("email").value;
-    const cuenta = document.getElementById("cuenta").value;
+    const nombre = document.getElementById("nombre").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const cuenta = document.getElementById("cuenta").value.trim();
     const password = document.getElementById("password").value;
 
-    const datos = new FormData();
-    datos.append("nombre", nombre);
-    datos.append("email", email);
-    datos.append("cuenta", cuenta);
-    datos.append("password", password);
+    try {
+      // Insertar directamente en la tabla de Supabase
+      const { data, error } = await window.supabaseClient
+        .from('usuarios')
+        .insert([
+          { nombre, email, numero_cuenta: cuenta, password }
+        ]);
 
-    fetch("/RedSocial/php/registro.php", {
-      method: "POST",
-      body: datos
-    })
-    .then(res => res.text())
-    .then(text => {
-      console.log("RESPUESTA:", text);
-
-      try {
-        const data = JSON.parse(text);
-
-        mensaje.innerHTML = `
-          <div class="alert alert-${data.status === "success" ? "success" : "danger"}">
-            ${data.message}
-          </div>
-        `;
-      } catch {
-        mostrarError("Respuesta inválida del servidor");
+      if (error) {
+        if (error.code === '23505') throw new Error("El correo o cuenta ya existen");
+        throw error;
       }
-    })
-    .catch(error => {
-      console.error("ERROR:", error);
-      mostrarError("Error de conexión");
-    });
+
+      mensaje.innerHTML = `
+        <div class="alert alert-success">
+          Usuario registrado correctamente. Redirigiendo...
+        </div>
+      `;
+
+      setTimeout(() => { window.location.href = "login.html"; }, 1500);
+
+    } catch (err) {
+      mostrarError(err.message || "Error al registrar");
+    }
   });
 }
 
+// ========================
+// LOGIN CON SUPABASE
+// ========================
 const formLogin = document.getElementById("formLogin");
 
 if (formLogin) {
-  formLogin.addEventListener("submit", function(e) {
+  formLogin.addEventListener("submit", async function(e) { // Se agrega async
     e.preventDefault();
 
-    const email = document.getElementById("email").value;
+    const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
 
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    try {
+      // Buscar el usuario en la base de datos
+      const { data, error } = await window.supabaseClient
+        .from('usuarios')
+        .select('*')
+        .or(`email.eq.${email},numero_cuenta.eq.${email}`)
+        .single();
 
-    const user = usuarios.find(u => u.email === email);
+      if (error || !data) throw new Error("Usuario no encontrado");
 
-    if (!user) {
-      return mostrarError("Usuario no encontrado");
+      // Verificar contraseña (comparación simple para fines académicos)
+      if (data.password !== password) throw new Error("Contraseña incorrecta");
+
+      // Guardar sesión real
+      localStorage.setItem("sesion", JSON.stringify(data));
+      
+      // Si el login es en un modal en el index
+      const modalElement = document.getElementById('loginModal');
+      if (modalElement) {
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        modal.hide();
+      }
+
+      actualizarBotonSesion();
+      
+      // Si el login es una página aparte, redirigir
+      if (window.location.pathname.includes("login.html")) {
+        window.location.href = "index.html";
+      }
+
+    } catch (err) {
+      mostrarError(err.message);
     }
-
-    localStorage.setItem("sesion", JSON.stringify(user));
-
-    actualizarBotonSesion();
   });
 }
 
+// ========================
+// FUNCIONES DE APOYO
+// ========================
 function mostrarError(msg) {
   if (!mensaje) return;
-  mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
+  mensaje.innerHTML = `<div class="alert alert-danger py-2">${msg}</div>`;
 }
+
 function actualizarBotonSesion() {
   const authArea = document.getElementById("authArea");
   if (!authArea) return;
@@ -81,19 +107,17 @@ function actualizarBotonSesion() {
     authArea.innerHTML = `
       <div class="dropdown">
         <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-          Perfil
+          Hola, ${sesion.nombre.split(' ')[0]}
         </button>
 
-        <ul class="dropdown-menu dropdown-menu-end" style="min-width:250px;">
-          <li class="px-3 py-2">
+        <ul class="dropdown-menu dropdown-menu-end shadow">
+          <li class="px-3 py-2 text-center">
             <strong>${sesion.nombre}</strong><br>
-            <small>${sesion.email}</small>
+            <small class="text-muted">${sesion.email}</small>
           </li>
-
-          <li><hr></li>
-
+          <li><hr class="dropdown-divider"></li>
           <li>
-            <button class="dropdown-item" id="logout">Cerrar sesión</button>
+            <button class="dropdown-item text-danger" id="logout">Cerrar sesión</button>
           </li>
         </ul>
       </div>
