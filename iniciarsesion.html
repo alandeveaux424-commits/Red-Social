@@ -30,11 +30,8 @@
 
     <form id="formLogin">
 
-      <input type="text" class="form-control mb-3" id="nombre" placeholder="Nombre completo">
-
-      <input type="text" class="form-control mb-3" id="email" placeholder="Correo institucional">
-
-      <input type="text" class="form-control mb-3" id="cuenta" placeholder="Número de cuenta">
+      <!-- 🔥 UN SOLO INPUT -->
+      <input type="text" class="form-control mb-3" id="email" placeholder="Correo o número de cuenta">
 
       <input type="password" class="form-control mb-3" id="password" placeholder="Contraseña">
 
@@ -58,107 +55,60 @@
 
 <!-- JS -->
 <script>
-// 🔥 USUARIOS PREDETERMINADOS
-const usuariosBase = [
-  {
-    nombre: "Nathan Osnaya",
-    email: "nathanosnaya321@aragon.unam.mx",
-    cuenta: "321122876",
-    password: "papafrita"
-  },
-  {
-    nombre: "Jesús Espejel",
-    email: "jesusespejel321@aragon.unam.mx",
-    cuenta: "321275257",
-    password: "todosconmike"
-  }
-];
-
-// Inicializar base de datos
-if (!localStorage.getItem("usuarios")) {
-  localStorage.setItem("usuarios", JSON.stringify(usuariosBase));
-}
-
 const form = document.getElementById("formLogin");
 const mensaje = document.getElementById("mensaje");
 
 form.addEventListener("submit", function(e) {
   e.preventDefault();
 
-  // Inputs
-  const nombreInput = document.getElementById("nombre");
-  const emailInput = document.getElementById("email");
-  const cuentaInput = document.getElementById("cuenta");
-  const passwordInput = document.getElementById("password");
+  const input = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
 
-  const nombre = nombreInput.value.trim();
-  const email = emailInput.value.trim();
-  const cuenta = cuentaInput.value.trim();
-  const password = passwordInput.value;
+  mensaje.innerHTML = "";
 
-  let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+  if (!input || !password) {
+    return mostrarError("Completa todos los campos");
+  }
 
-  // Reset estilos
-  [nombreInput, emailInput, cuentaInput, passwordInput].forEach(input => {
-    input.classList.remove("is-invalid", "is-valid");
+  // 🔥 Enviar a PHP (SQLite)
+  const datos = new FormData();
+  datos.append("input", input);
+  datos.append("password", password);
+
+  fetch("/RedSocial/php/login.php", {
+    method: "POST",
+    body: datos
+  })
+  .then(res => res.text())
+  .then(text => {
+    console.log("RESPUESTA:", text);
+
+    try {
+      const data = JSON.parse(text);
+
+      if (data.status === "success") {
+
+        mostrarExito("Bienvenido " + data.usuario.nombre + " ✔");
+
+        // Guardar sesión
+        localStorage.setItem("sesion", JSON.stringify(data.usuario));
+
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1200);
+
+      } else {
+        mostrarError(data.message);
+      }
+
+    } catch {
+      mostrarError("Respuesta inválida del servidor");
+    }
+  })
+  .catch(error => {
+    console.error("ERROR:", error);
+    mostrarError("Error de conexión con el servidor");
   });
-
-  let error = false;
-
-  // Validaciones básicas
-  if (!nombre) {
-    nombreInput.classList.add("is-invalid");
-    error = true;
-  }
-
-  if (!email || !email.includes("@")) {
-    emailInput.classList.add("is-invalid");
-    error = true;
-  }
-
-  if (!cuenta || cuenta.length !== 9) {
-    cuentaInput.classList.add("is-invalid");
-    error = true;
-  }
-
-  if (!password) {
-    passwordInput.classList.add("is-invalid");
-    error = true;
-  }
-
-  if (error) {
-    return mostrarError("Completa correctamente los campos");
-  }
-
-  // 🔍 Buscar usuario
-  const usuario = usuarios.find(u =>
-    u.nombre === nombre &&
-    u.email === email &&
-    u.cuenta === cuenta &&
-    u.password === password
-  );
-
-  if (!usuario) {
-    [nombreInput, emailInput, cuentaInput, passwordInput].forEach(input => {
-      input.classList.add("is-invalid");
-    });
-
-    return mostrarError("Datos incorrectos");
-  }
-
-  // 🟢 Correcto
-  [nombreInput, emailInput, cuentaInput, passwordInput].forEach(input => {
-    input.classList.add("is-valid");
-  });
-
-  mostrarExito("Inicio de sesión correcto ✔");
-
-  localStorage.setItem("sesion", JSON.stringify(usuario));
-
-  // 🔁 Redirigir a index (tu feed)
-  setTimeout(() => {
-    window.location.href = "index.html";
-  }, 1200);
 });
 
 function mostrarError(msg) {
