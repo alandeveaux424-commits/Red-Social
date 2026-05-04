@@ -6,6 +6,7 @@
 
   <title>Red UNAM</title>
 
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <link rel="stylesheet" href="style/styles.css">
@@ -13,6 +14,7 @@
 
 <body>
 
+<!-- 🔵 NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container-fluid">
 
@@ -29,59 +31,55 @@
       <ul class="navbar-nav me-auto">
 
         <li class="nav-item">
-          <a class="nav-link active">Inicio</a>
+          <a class="nav-link active" href="index.html">Inicio</a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link">Noticias</a>
+          <a class="nav-link" href="noticias.html">Noticias</a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link">Grupos</a>
+          <a class="nav-link" href="grupos.html">Grupos</a>
         </li>
 
       </ul>
-
-      <div id="authArea">
-        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
-          Iniciar sesión
-        </button>
-      </div>
-
     </div>
+
+    <!-- 🔐 AUTH AREA -->
+    <div id="authArea">
+      <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+        Iniciar sesión
+      </button>
+    </div>
+
   </div>
 </nav>
 
+<!-- CONTENIDO -->
 <div class="container mt-4 text-center">
   <h1>Bienvenido a Red UNAM</h1>
   <p>Comunidad estudiantil universitaria</p>
 </div>
 
+<!-- 🔵 GACETA -->
 <div class="container mt-4">
   <h3 class="text-center mb-3">Gaceta UNAM</h3>
 
   <div class="ratio ratio-16x9 border rounded shadow">
-    <iframe 
-      src="https://www.gaceta.unam.mx/"
-      style="border:0;"
-      loading="lazy">
-    </iframe>
+    <iframe src="https://www.gaceta.unam.mx/" style="border:0;" loading="lazy"></iframe>
   </div>
 
   <p class="text-center mt-2">
-    Si no se muestra, puedes verla aquí:
-    <a href="https://www.gaceta.unam.mx/" target="_blank">
-      Ir a Gaceta UNAM
-    </a>
+    <a href="https://www.gaceta.unam.mx/" target="_blank">Ir a Gaceta UNAM</a>
   </p>
 </div>
 
+<!-- 🔥 MODAL LOGIN -->
 <div class="modal fade" id="loginModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    
     <div class="modal-content">
       
-      <div class="card login-card p-4">
+      <div class="card p-4">
 
         <div class="text-end">
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -89,14 +87,13 @@
 
         <div class="text-center mb-3">
           <h3>Iniciar sesión</h3>
-          <p>Accede con tu cuenta UNAM</p>
         </div>
 
         <form id="formLogin">
 
-          <input type="text" class="form-control mb-3" id="nombre" placeholder="Nombre completo">
-          <input type="text" class="form-control mb-3" id="email" placeholder="Correo institucional">
-          <input type="text" class="form-control mb-3" id="cuenta" placeholder="Número de cuenta">
+          <!-- 🔥 SOLO UN INPUT -->
+          <input type="text" class="form-control mb-3" id="email" placeholder="Correo o número de cuenta">
+
           <input type="password" class="form-control mb-3" id="password" placeholder="Contraseña">
 
           <button class="btn btn-primary w-100">Iniciar sesión</button>
@@ -105,7 +102,7 @@
 
         <p class="text-center mt-3">
           ¿No tienes cuenta?
-          <a href="registro.html" class="link-primary fw-bold">Regístrate</a>
+          <a href="registro.html">Regístrate</a>
         </p>
 
         <div id="mensaje" class="mt-3 text-center"></div>
@@ -113,60 +110,15 @@
       </div>
 
     </div>
-
   </div>
 </div>
 
+<!-- JS -->
 <script>
-const usuariosBase = [
-  {
-    nombre: "Nathan Osnaya",
-    email: "nathanosnaya321@aragon.unam.mx",
-    cuenta: "321122876",
-    password: "papafrita"
-  },
-  {
-    nombre: "Jesús Espejel",
-    email: "jesusespejel321@aragon.unam.mx",
-    cuenta: "321275257",
-    password: "todosconmike"
-  },
-  {
-   nombre: "Alan Deveaux",
-    email: "alandeveaux424@aragon.unam.mx",
-    cuenta: "424131829",
-    password: "Ellanoteama1" 
-  },
-  {
-    nombre: "Cristofer Esquivel",
-    email: "cristoferesquivel06@aragon.unam.mx ",
-    cuenta: "321009906",
-    password: "ahorcarukas" 
-  },
-  {
-    nombre: "León Herrera",
-    email: "leonherrera321@aragon.unam.mx",
-    cuenta: "321044185",
-    password: "mondongo" 
-  },
-  {
-    nombre: "Magdiel Torres",
-    email: "magdieltorres321@aragon.unam.mx",
-    cuenta: "321110099",
-    password: "1234567890abcde" 
-  },
-  {
-    nombre: "Carlos García",
-    email: "carlosgarcia08@aragon.unam.mx",
-    cuenta: "321058708",
-    password: "NoSoyGaySoloJuegoConRugal69." 
-  }
-];
 
-if (!localStorage.getItem("usuarios")) {
-  localStorage.setItem("usuarios", JSON.stringify(usuariosBase));
-}
-
+// ========================
+// LOGIN CON BD
+// ========================
 const form = document.getElementById("formLogin");
 const mensaje = document.getElementById("mensaje");
 
@@ -174,70 +126,49 @@ if (form) {
   form.addEventListener("submit", function(e) {
     e.preventDefault();
 
-    const nombre = document.getElementById("nombre");
-    const email = document.getElementById("email");
-    const cuenta = document.getElementById("cuenta");
-    const password = document.getElementById("password");
+    const input = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
 
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    if (!input || !password) {
+      return mostrarError("Completa los campos");
+    }
 
-    [nombre, email, cuenta, password].forEach(i => {
-      i.classList.remove("is-invalid", "is-valid");
+    const datos = new FormData();
+    datos.append("input", input);
+    datos.append("password", password);
+
+    fetch("/RedSocial/php/login.php", {
+      method: "POST",
+      body: datos
+    })
+    .then(res => res.json())
+    .then(data => {
+
+      if (data.status === "success") {
+
+        localStorage.setItem("sesion", JSON.stringify(data.usuario));
+
+        mostrarExito("Bienvenido " + data.usuario.nombre);
+
+        setTimeout(() => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+          modal.hide();
+          actualizarBotonSesion();
+        }, 1000);
+
+      } else {
+        mostrarError(data.message);
+      }
+    })
+    .catch(() => {
+      mostrarError("Error de conexión");
     });
-
-    let error = false;
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!nombre.value.trim()) {
-      nombre.classList.add("is-invalid");
-      error = true;
-    }
-
-    if (!emailRegex.test(email.value)) {
-      email.classList.add("is-invalid");
-      error = true;
-    }
-
-    if (cuenta.value.length !== 9) {
-      cuenta.classList.add("is-invalid");
-      error = true;
-    }
-
-    if (!password.value) {
-      password.classList.add("is-invalid");
-      error = true;
-    }
-
-    if (error) {
-      return mostrarError("Completa correctamente los campos");
-    }
-
-    const usuario = usuarios.find(u =>
-      u.nombre === nombre.value.trim() &&
-      u.email.toLowerCase() === email.value.trim().toLowerCase() &&
-      u.cuenta === cuenta.value.trim() &&
-      u.password === password.value
-    );
-
-    if (!usuario) {
-      [nombre, email, cuenta, password].forEach(i => i.classList.add("is-invalid"));
-      return mostrarError("Datos incorrectos");
-    }
-
-    [nombre, email, cuenta, password].forEach(i => i.classList.add("is-valid"));
-    localStorage.setItem("sesion", JSON.stringify(usuario));
-    mostrarExito("Bienvenido " + usuario.nombre);
-
-    setTimeout(() => {
-      const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-      modal.hide();
-
-      actualizarBotonSesion();
-    }, 1000);
   });
 }
 
+// ========================
+// MENSAJES
+// ========================
 function mostrarError(msg) {
   mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
 }
@@ -246,29 +177,38 @@ function mostrarExito(msg) {
   mensaje.innerHTML = `<div class="alert alert-success">${msg}</div>`;
 }
 
+// ========================
+// PERFIL
+// ========================
 function actualizarBotonSesion() {
   const authArea = document.getElementById("authArea");
-  if (!authArea) return;
-
   const sesion = JSON.parse(localStorage.getItem("sesion"));
 
   if (sesion) {
     authArea.innerHTML = `
       <div class="dropdown">
         <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-          Perfil
+          ${sesion.nombre}
         </button>
-        <ul class="dropdown-menu">
-          <li class="dropdown-item-text"><strong>${sesion.nombre}</strong></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><button class="dropdown-item" id="cerrarSesion">Cerrar sesión</button></li>
+
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:250px;">
+          <li class="px-3 py-2">
+            <strong>${sesion.nombre}</strong><br>
+            <small>${sesion.email}</small>
+          </li>
+
+          <li><hr></li>
+
+          <li>
+            <button class="dropdown-item" id="logout">Cerrar sesión</button>
+          </li>
         </ul>
       </div>
     `;
 
-    document.getElementById("cerrarSesion").addEventListener("click", () => {
+    document.getElementById("logout").addEventListener("click", () => {
       localStorage.removeItem("sesion");
-      actualizarBotonSesion();
+      location.reload();
     });
 
   } else {
@@ -283,6 +223,7 @@ function actualizarBotonSesion() {
 document.addEventListener("DOMContentLoaded", actualizarBotonSesion);
 
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
