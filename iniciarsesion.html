@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Iniciar Sesión - Red UNAM</title>
 
   <!-- Bootstrap -->
@@ -15,37 +16,38 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-dark bg-primary px-3">
   <span class="navbar-brand mb-0 h1">Red UNAM</span>
-
   <div class="ms-auto">
-    <img src="images/logoUNAM.png" alt="Logo" class="logo-navbar">
+    <img src="images/logoUNAM.png" alt="Logo" class="logo-navbar" width="40">
   </div>
 </nav>
 
 <!-- CONTENIDO -->
 <div class="container d-flex justify-content-center align-items-center mt-5">
-  <div class="card shadow-lg p-4 registro-card">
+  <div class="card shadow-lg p-4 registro-card" style="max-width: 400px; width: 100%;">
 
     <h3 class="text-center mb-2">Iniciar sesión</h3>
     <p class="text-center text-muted mb-4">Accede con tu cuenta UNAM</p>
 
     <form id="formLogin">
+      <!-- INPUT PARA EMAIL O CUENTA -->
+      <div class="mb-3">
+        <input type="text" class="form-control" id="email" placeholder="Correo o número de cuenta" required>
+      </div>
 
-      <!-- 🔥 UN SOLO INPUT -->
-      <input type="text" class="form-control mb-3" id="email" placeholder="Correo o número de cuenta">
+      <div class="mb-3">
+        <input type="password" class="form-control" id="password" placeholder="Contraseña" required>
+      </div>
 
-      <input type="password" class="form-control mb-3" id="password" placeholder="Contraseña">
-
-      <button class="btn btn-primary w-100">Iniciar sesión</button>
-
+      <button type="submit" class="btn btn-primary w-100">Entrar</button>
     </form>
 
     <p class="text-center mt-3">
       ¿No tienes cuenta?
-      <a href="registro.html" class="link-primary">Regístrate</a>
+      <a href="registro.html" class="link-primary text-decoration-none">Regístrate</a>
     </p>
 
-    <div class="imagen-container mt-4">
-      <img src="images/pumaUNAM.png" alt="UNAM" class="img-fluid imagen-unam">
+    <div class="imagen-container mt-4 text-center">
+      <img src="images/pumaUNAM.png" alt="UNAM" class="img-fluid imagen-unam" style="max-height: 100px;">
     </div>
 
     <div id="mensaje" class="mt-3 text-center"></div>
@@ -53,12 +55,20 @@
   </div>
 </div>
 
-<!-- JS -->
+<!-- 🛠 SCRIPTS -->
+
+<!-- 1. Librería Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- 2. Tu configuración (Asegúrate que js/conexion.js tenga tus llaves) -->
+<script src="js/conexion.js"></script>
+
 <script>
 const form = document.getElementById("formLogin");
 const mensaje = document.getElementById("mensaje");
 
-form.addEventListener("submit", function(e) {
+// Usamos async para manejar la respuesta de Supabase
+form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
   const input = document.getElementById("email").value.trim();
@@ -66,49 +76,50 @@ form.addEventListener("submit", function(e) {
 
   mensaje.innerHTML = "";
 
+  // Validación básica frontend
   if (!input || !password) {
     return mostrarError("Completa todos los campos");
   }
 
-  // 🔥 Enviar a PHP (SQLite)
-  const datos = new FormData();
-  datos.append("input", input);
-  datos.append("password", password);
+  try {
+    // CONSULTA A SUPABASE: Buscamos por email o número de cuenta
+    const { data, error } = await window.supabaseClient
+      .from('usuarios')
+      .select('*')
+      .or(`email.eq."${input}",numero_cuenta.eq."${input}"`)
+      .single();
 
-  fetch("/RedSocial/php/login.php", {
-    method: "POST",
-    body: datos
-  })
-  .then(res => res.text())
-  .then(text => {
-    console.log("RESPUESTA:", text);
-
-    try {
-      const data = JSON.parse(text);
-
-      if (data.status === "success") {
-
-        mostrarExito("Bienvenido " + data.usuario.nombre + " ✔");
-
-        // Guardar sesión
-        localStorage.setItem("sesion", JSON.stringify(data.usuario));
-
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 1200);
-
-      } else {
-        mostrarError(data.message);
-      }
-
-    } catch {
-      mostrarError("Respuesta inválida del servidor");
+    if (error || !data) {
+      throw new Error("Usuario no encontrado");
     }
-  })
-  .catch(error => {
-    console.error("ERROR:", error);
-    mostrarError("Error de conexión con el servidor");
-  });
+
+    // VERIFICACIÓN DE CONTRASEÑA
+    // Nota: Para este nivel de proyecto comparamos directamente el string
+    if (data.password !== password) {
+      throw new Error("Contraseña incorrecta");
+    }
+
+    // ✅ ÉXITO: Guardar sesión en el navegador
+    mostrarExito("¡Bienvenido, " + data.nombre + "! ✔");
+    
+    const usuarioSesion = {
+      id: data.id,
+      nombre: data.nombre,
+      email: data.email,
+      cuenta: data.numero_cuenta
+    };
+    
+    localStorage.setItem("sesion", JSON.stringify(usuarioSesion));
+
+    // Redirigir después de un momento
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 1200);
+
+  } catch (err) {
+    console.error("Error en Login:", err.message);
+    mostrarError(err.message || "Error al conectar con la base de datos");
+  }
 });
 
 function mostrarError(msg) {
