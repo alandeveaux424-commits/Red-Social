@@ -1,5 +1,5 @@
 // 1. Conexión (Reemplaza con tus llaves de Settings > API)
-const supabaseUrl = 'https://csicfyvadluenphbfkot.supabase.co';
+const supabaseUrl = 'https://csicfyvadluenphbfkot.supabase.co/rest/v1/';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWNmeXZhZGx1ZW5waGJma290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTg3NzgsImV4cCI6MjA5MzQzNDc3OH0.R7mAUDg3-SWQWjIQM0qLjgBWQVK_4kybzK5Gi-AIzZ8';
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
