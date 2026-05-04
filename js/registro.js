@@ -1,7 +1,7 @@
 const form = document.getElementById("formRegistro");
 const mensaje = document.getElementById("mensaje");
 
-form.addEventListener("submit", function(e) {
+form.addEventListener("submit", async function(e) { // Añadimos async para usar await con Supabase
   e.preventDefault();
 
   let nombre = document.getElementById("nombre");
@@ -9,45 +9,34 @@ form.addEventListener("submit", function(e) {
   let cuenta = document.getElementById("cuenta");
   let password = document.getElementById("password");
 
+  // Valores
   let nombreVal = nombre.value.trim();
   let emailVal = email.value.trim();
   let cuentaVal = cuenta.value.trim();
   let passwordVal = password.value;
 
+  // REGEX
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const cuentaRegex = /^\d{9}$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
+  // Reset estilos
   [nombre, email, cuenta, password].forEach(input => {
     input.classList.remove("is-invalid", "is-valid");
   });
 
-  let error = false;
-
+  // VALIDACIONES FRONTEND
   if (!nombreVal) {
     nombre.classList.add("is-invalid");
-    error = true;
+    return mostrarError("El nombre es obligatorio");
   }
 
-  if (!emailVal && !cuentaVal) {
+  if (!emailRegex.test(emailVal) || !emailVal.endsWith("@unam.mx")) {
     email.classList.add("is-invalid");
-    cuenta.classList.add("is-invalid");
-    error = true;
+    return mostrarError("Solo se permiten correos @unam.mx");
   }
 
-  if (emailVal) {
-    if (!emailRegex.test(emailVal)) {
-      email.classList.add("is-invalid");
-      return mostrarError("Correo inválido");
-    }
-
-    if (!emailVal.endsWith("@unam.mx")) {
-      email.classList.add("is-invalid");
-      return mostrarError("Solo correos UNAM");
-    }
-  }
-
-  if (cuentaVal && !cuentaRegex.test(cuentaVal)) {
+  if (!cuentaRegex.test(cuentaVal)) {
     cuenta.classList.add("is-invalid");
     return mostrarError("Número de cuenta inválido (9 dígitos)");
   }
@@ -57,85 +46,59 @@ form.addEventListener("submit", function(e) {
     return mostrarError("Contraseña insegura (mín 8, mayúscula, número y símbolo)");
   }
 
-  if (error) {
-    return mostrarError("Completa correctamente los campos");
-  }
+  // 🚀 CONEXIÓN CON SUPABASE (Sustituye al fetch de PHP)
+  try {
+    // Insertamos directamente en la tabla 'usuarios' que ya tienes
+    const { data, error } = await window.supabaseClient
+      .from('usuarios')
+      .insert([
+        { 
+          nombre: nombreVal, 
+          email: emailVal, 
+          numero_cuenta: cuentaVal, 
+          password: passwordVal // Supabase protege la conexión vía SSL automáticamente
+        }
+      ]);
 
-  let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-
-  const existe = usuarios.some(u =>
-    u.email === emailVal || u.cuenta === cuentaVal
-  );
-
-  if (existe) {
-    email.classList.add("is-invalid");
-    cuenta.classList.add("is-invalid");
-    return mostrarError("El usuario ya existe");
-  }
-
-  const datos = new FormData();
-  datos.append("nombre", nombreVal);
-  datos.append("email", emailVal);
-  datos.append("cuenta", cuentaVal);
-  datos.append("password", passwordVal);
-
-  fetch("/RedSocial/php/registro.php", {
-    method: "POST",
-    body: datos
-  })
-  .then(res => res.text())
-  .then(text => {
-    console.log("RESPUESTA DEL SERVIDOR:", text);
-
-    try {
-      const data = JSON.parse(text);
-
-      if (data.status === "success") {
-
-        // GUARDAR TAMBIÉN EN LOCAL (para login frontend)
-        const nuevoUsuario = {
-          nombre: nombreVal,
-          email: emailVal,
-          cuenta: cuentaVal,
-          password: passwordVal
-        };
-
-        usuarios.push(nuevoUsuario);
-        localStorage.setItem("usuarios", JSON.stringify(usuarios));
-
-        mostrarExito(data.message);
-
-        // Marcar como válidos
-        [nombre, email, cuenta, password].forEach(input => {
-          input.classList.add("is-valid");
-        });
-
-        form.reset();
-
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 1200);
-
-      } else {
-        mostrarError(data.message);
+    // Manejo de errores de la base de datos (Ej: Usuario ya existe)
+    if (error) {
+      if (error.code === '23505') { // Código de PostgreSQL para duplicados (Unique constraint)
+        email.classList.add("is-invalid");
+        cuenta.classList.add("is-invalid");
+        throw new Error("El correo o número de cuenta ya están registrados.");
       }
-
-    } catch {
-      console.error("Respuesta no JSON:", text);
-      mostrarError("Error del servidor (respuesta inválida)");
+      throw error;
     }
-  })
-  .catch(error => {
-    console.error("ERROR REAL:", error);
-    mostrarError("Error de conexión con el servidor");
-  });
 
+    // 🟢 TODO SALIÓ BIEN
+    mostrarExito("Usuario registrado correctamente en la nube.");
+
+    // Marcar como válidos visualmente
+    [nombre, email, cuenta, password].forEach(input => {
+      input.classList.add("is-valid");
+    });
+
+    // Limpiar formulario
+    form.reset();
+
+    // 🔁 Redirigir al login después de un momento
+    setTimeout(() => {
+      window.location.href = "login.html"; 
+    }, 1500);
+
+  } catch (err) {
+    console.error("ERROR EN REGISTRO:", err.message);
+    mostrarError(err.message || "Error al conectar con Supabase");
+  }
 });
 
+// 🔴 FUNCIÓN MOSTRAR ERROR
 function mostrarError(msg) {
   mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
+  return false; 
 }
 
+// 🟢 FUNCIÓN MOSTRAR ÉXITO
 function mostrarExito(msg) {
   mensaje.innerHTML = `<div class="alert alert-success">${msg}</div>`;
 }
