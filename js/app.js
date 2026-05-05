@@ -131,3 +131,21 @@ function actualizarBotonSesion() {
 }
 
 document.addEventListener("DOMContentLoaded", actualizarBotonSesion);
+
+// ==========================================
+// CONTROL DEL CARRUSEL (AUTOMÁTICO Y RÁPIDO)
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+    const myCarousel = document.querySelector('#carouselUnam');
+    
+    if (myCarousel) {
+        const carousel = new bootstrap.Carousel(myCarousel, {
+            interval: 2500, // Tiempo de cambio (2.5 segundos)
+            ride: 'carousel',
+            pause: false    // No se detiene si pasas el mouse
+        });
+        
+        // Refuerzo para asegurar que empiece a girar
+        carousel.cycle();
+    }
+});
