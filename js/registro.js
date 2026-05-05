@@ -1,19 +1,39 @@
 const form = document.getElementById("formRegistro");
 const mensaje = document.getElementById("mensaje");
 
+// --- NUEVO: Lógica para ver/ocultar contraseña ---
+const btnTogglePassword = document.getElementById("btnTogglePassword");
+const passwordEl = document.getElementById("password");
+const iconEye = document.getElementById("iconEye");
+
+if (btnTogglePassword) {
+  btnTogglePassword.addEventListener("click", function() {
+    const isPassword = passwordEl.type === "password";
+    passwordEl.type = isPassword ? "text" : "password";
+    // Cambia el icono si usas Bootstrap Icons
+    iconEye.classList.toggle("bi-eye");
+    iconEye.classList.toggle("bi-eye-slash");
+  });
+}
+
 form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
-  let nombre = document.getElementById("nombre");
-  let email = document.getElementById("email");
-  let cuenta = document.getElementById("cuenta");
-  let password = document.getElementById("password");
+  // Referencias a los elementos
+  const nombre = document.getElementById("nombre");
+  const email = document.getElementById("email");
+  const cuenta = document.getElementById("cuenta");
+  const password = document.getElementById("password");
+  const fechaNac = document.getElementById("fecha_nacimiento");
 
-  let nombreVal = nombre.value.trim();
-  let emailVal = email.value.trim();
-  let cuentaVal = cuenta.value.trim();
-  let passwordVal = password.value;
+  // Valores
+  const nombreVal = nombre.value.trim();
+  const emailVal = email.value.trim();
+  const cuentaVal = cuenta.value.trim();
+  const passwordVal = password.value;
+  const fechaNacVal = fechaNac.value;
 
+  // --- LISTA DE DOMINIOS PERMITIDOS ---
   const dominiosPermitidos = [
     "@unam.mx", "@arquitectura.unam.mx", "@fad.unam.mx", "@ciencias.unam.mx",
     "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx",
@@ -24,32 +44,32 @@ form.addEventListener("submit", async function(e) {
     "@enes.juriquilla.unam.mx", "@cch.unam.mx", "@enp.unam.mx"
   ];
 
-  const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/; 
+  // REGEX
+  const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const cuentaRegex = /^\d{9}$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
   // Reset estilos
-  [nombre, email, cuenta, password].forEach(input => {
+  [nombre, email, cuenta, password, fechaNac].forEach(input => {
     input.classList.remove("is-invalid", "is-valid");
   });
 
-  // VALIDACIONES FRONTEND
-  if (!nombreVal) {
+  // --- VALIDACIONES FRONTEND ---
+  if (!nombreVal || !nombreRegex.test(nombreVal)) {
     nombre.classList.add("is-invalid");
-    return mostrarError("El nombre es obligatorio");
+    return mostrarError("Nombre inválido (solo letras y acentos)");
   }
 
-  if (!nombreRegex.test(nombreVal)) { 
-    nombre.classList.add("is-invalid");
-    return mostrarError("El nombre no debe contener números ni símbolos especiales (solo acentos)");
+  if (!fechaNacVal) {
+    fechaNac.classList.add("is-invalid");
+    return mostrarError("La fecha de nacimiento es obligatoria");
   }
 
-  // VALIDACIÓN DE CORREO
   const esDominioValido = dominiosPermitidos.some(dominio => emailVal.endsWith(dominio));
   if (!emailRegex.test(emailVal) || !esDominioValido) {
     email.classList.add("is-invalid");
-    return mostrarError("Correo no válido. Usa tu correo institucional de la UNAM.");
+    return mostrarError("Usa tu correo institucional de la UNAM.");
   }
 
   if (!cuentaRegex.test(cuentaVal)) {
@@ -59,9 +79,10 @@ form.addEventListener("submit", async function(e) {
 
   if (!passwordRegex.test(passwordVal)) {
     password.classList.add("is-invalid");
-    return mostrarError("Contraseña insegura (mín 8, mayúscula, número y símbolo)");
+    return mostrarError("Contraseña insegura (mín 8, una mayúscula, un número y un símbolo)");
   }
 
+  // 🚀 ENVÍO A SUPABASE
   try {
     if (!window.supabaseClient) throw new Error("Error de conexión: Cliente no inicializado.");
 
@@ -71,7 +92,8 @@ form.addEventListener("submit", async function(e) {
         nombre: nombreVal, 
         email: emailVal, 
         numero_cuenta: cuentaVal, 
-        password: passwordVal 
+        password: passwordVal,
+        fecha_nacimiento: fechaNacVal 
       }]);
 
     if (error) {
@@ -83,9 +105,10 @@ form.addEventListener("submit", async function(e) {
       throw error;
     }
 
-    mostrarExito("Usuario registrado correctamente en la nube.");
-    [nombre, email, cuenta, password].forEach(input => input.classList.add("is-valid"));
+    mostrarExito("¡Cuenta UNAM creada con éxito!");
+    [nombre, email, cuenta, password, fechaNac].forEach(input => input.classList.add("is-valid"));
     form.reset();
+    
     setTimeout(() => { window.location.href = "index.html"; }, 1500);
 
   } catch (err) {
@@ -95,10 +118,9 @@ form.addEventListener("submit", async function(e) {
 });
 
 function mostrarError(msg) {
-  mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
-  return false; 
+  mensaje.innerHTML = `<div class="alert alert-danger py-2 small shadow-sm">${msg}</div>`;
 }
 
 function mostrarExito(msg) {
-  mensaje.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+  mensaje.innerHTML = `<div class="alert alert-success py-2 small shadow-sm">${msg}</div>`;
 }
