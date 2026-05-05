@@ -27,7 +27,8 @@
         <input type="text" class="form-control" id="nombre" placeholder="Nombre completo" required>
       </div>
       <div class="mb-3">
-        <input type="email" class="form-control" id="email" placeholder="Correo institucional (@unam.mx)" required>
+        <input type="email" class="form-control" id="email" placeholder="Correo institucional" required>
+        <div class="form-text">Ej: usuario@ingenieria.unam.mx</div>
       </div>
       <div class="mb-3">
         <input type="text" class="form-control" id="cuenta" placeholder="Número de cuenta (9 dígitos)" required>
@@ -46,8 +47,12 @@
   </div>
 </div>
 
+<!-- ORDEN CRÍTICO DE SCRIPTS -->
+<!-- 1. Librería Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- 2. Tu configuración global (window.supabaseClient) -->
 <script src="js/conexion.js"></script>
+
 <script>
 const form     = document.getElementById("formRegistro");
 const mensaje  = document.getElementById("mensaje");
@@ -65,6 +70,17 @@ form.addEventListener("submit", async function(e) {
   const cuenta   = cuentaEl.value.trim();
   const password = passwordEl.value;
 
+  // --- LISTA DE DOMINIOS AUTORIZADOS ---
+  const dominiosPermitidos = [
+    "@unam.mx", "@arquitectura.unam.mx", "@fad.unam.mx", "@ciencias.unam.mx",
+    "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx",
+    "@filos.unam.mx", "@ingenieria.unam.mx", "@facmed.unam.mx", "@fmvz.unam.mx",
+    "@musica.unam.mx", "@odontologia.unam.mx", "@psicologia.unam.mx", "@quimica.unam.mx",
+    "@aragon.unam.mx", "@acatlan.unam.mx", "@cuautitlan.unam.mx", "@iztacala.unam.mx", "@zaragoza.unam.mx",
+    "@enes.morelia.unam.mx", "@enes.leon.unam.mx", "@enes.juriquilla.unam.mx", "@cch.unam.mx", "@enp.unam.mx"
+
+  ];
+
   // REGEX
   const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const cuentaRegex   = /^\d{9}$/;
@@ -73,39 +89,44 @@ form.addEventListener("submit", async function(e) {
   // Reset estilos
   [nombreEl, emailEl, cuentaEl, passwordEl].forEach(i => i.classList.remove("is-invalid", "is-valid"));
 
-  // Validaciones
+  // --- VALIDACIONES FRONTEND ---
   if (!nombre) {
     nombreEl.classList.add("is-invalid");
     return mostrarError("El nombre es obligatorio");
   }
-  if (!emailRegex.test(email) || !email.endsWith("@unam.mx")) {
+
+  // Validación de correos de Facultades
+  const esDominioValido = dominiosPermitidos.some(dom => email.endsWith(dom));
+  if (!emailRegex.test(email) || !esDominioValido) {
     emailEl.classList.add("is-invalid");
-    return mostrarError("Solo se permiten correos @unam.mx");
+    return mostrarError("Usa un correo institucional válido (ej: @ingenieria.unam.mx)");
   }
+
   if (!cuentaRegex.test(cuenta)) {
     cuentaEl.classList.add("is-invalid");
     return mostrarError("Número de cuenta inválido (9 dígitos)");
   }
+
   if (!passwordRegex.test(password)) {
     passwordEl.classList.add("is-invalid");
     return mostrarError("Contraseña insegura (mín 8 caracteres, una mayúscula, un número y un símbolo)");
   }
 
   try {
-    // Hashear contraseña antes de guardar
-    const passwordHash = await window.hashPassword(password);
+    // Verificación de conexión[cite: 1]
+    if (!window.supabaseClient) throw new Error("Error: No se pudo conectar con la base de datos.");
 
     const { data, error } = await window.supabaseClient
       .from('usuarios')
       .insert([{
-        nombre:        nombre,
-        email:         email,
+        nombre: nombre,
+        email: email,
         numero_cuenta: cuenta,
-        password:      passwordHash
+        password: password // Supabase cifra la comunicación vía SSL
       }]);
 
     if (error) {
-      if (error.code === '23505') {
+      if (error.code === '23505') { // Error de duplicado
         emailEl.classList.add("is-invalid");
         cuentaEl.classList.add("is-invalid");
         throw new Error("El correo o número de cuenta ya están registrados");
@@ -117,7 +138,7 @@ form.addEventListener("submit", async function(e) {
     mostrarExito("¡Cuenta creada correctamente! Redirigiendo...");
     form.reset();
 
-    setTimeout(() => { window.location.href = "iniciarsesion.html"; }, 1500);
+    setTimeout(() => { window.location.href = "login.html"; }, 1500);
 
   } catch (err) {
     console.error("Error en registro:", err.message);
