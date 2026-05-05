@@ -33,6 +33,16 @@ form.addEventListener("submit", async function(e) {
     "@odontologia.unam.mx",
     "@psicologia.unam.mx",
     "@quimica.unam.mx"
+    "@aragon.unam.mx", 
+    "@acatlan.unam.mx", 
+    "@cuautitlan.unam.mx", 
+    "@iztacala.unam.mx", 
+    "@zaragoza.unam.mx",
+    "@enes.morelia.unam.mx", 
+    "@enes.leon.unam.mx", 
+    "@enes.juriquilla.unam.mx", 
+    "@cch.unam.mx", 
+    "@enp.unam.mx"
   ];
 
   // REGEX
