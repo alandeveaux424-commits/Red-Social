@@ -6,20 +6,34 @@ const mensaje = document.getElementById("mensaje");
 const formRegistro = document.getElementById("formRegistro");
 
 if (formRegistro) {
-  formRegistro.addEventListener("submit", async function(e) { // Se agrega async
+  formRegistro.addEventListener("submit", async function(e) {
     e.preventDefault();
 
-    const nombre = document.getElementById("nombre").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const cuenta = document.getElementById("cuenta").value.trim();
-    const password = document.getElementById("password").value;
+    // Referencias a los inputs
+    const nombreInput = document.getElementById("nombre");
+    const emailInput = document.getElementById("email");
+    const cuentaInput = document.getElementById("cuenta");
+    const passwordInput = document.getElementById("password");
+    const fechaNacInput = document.getElementById("fecha_nacimiento"); // <--- NUEVO
+
+    const nombre = nombreInput.value.trim();
+    const email = emailInput.value.trim();
+    const cuenta = cuentaInput.value.trim();
+    const password = passwordInput.value;
+    const fecha_nacimiento = fechaNacInput ? fechaNacInput.value : null; // <--- NUEVO
 
     try {
-      // Insertar directamente en la tabla de Supabase
+      // 🚀 Insertar en la tabla con el nuevo campo
       const { data, error } = await window.supabaseClient
         .from('usuarios')
         .insert([
-          { nombre, email, numero_cuenta: cuenta, password }
+          { 
+            nombre, 
+            email, 
+            numero_cuenta: cuenta, 
+            password,
+            fecha_nacimiento // <--- AGREGADO A LA INSERCIÓN
+          }
         ]);
 
       if (error) {
@@ -29,11 +43,11 @@ if (formRegistro) {
 
       mensaje.innerHTML = `
         <div class="alert alert-success">
-          Usuario registrado correctamente. Redirigiendo...
+          ¡Cuenta UNAM creada con éxito! Redirigiendo...
         </div>
       `;
 
-      setTimeout(() => { window.location.href = "login.html"; }, 1500);
+      setTimeout(() => { window.location.href = "index.html"; }, 1500);
 
     } catch (err) {
       mostrarError(err.message || "Error al registrar");
@@ -47,14 +61,14 @@ if (formRegistro) {
 const formLogin = document.getElementById("formLogin");
 
 if (formLogin) {
-  formLogin.addEventListener("submit", async function(e) { // Se agrega async
+  formLogin.addEventListener("submit", async function(e) {
     e.preventDefault();
 
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
 
     try {
-      // Buscar el usuario en la base de datos
+      // Buscar usuario por email o número de cuenta
       const { data, error } = await window.supabaseClient
         .from('usuarios')
         .select('*')
@@ -63,23 +77,23 @@ if (formLogin) {
 
       if (error || !data) throw new Error("Usuario no encontrado");
 
-      // Verificar contraseña (comparación simple para fines académicos)
+      // Verificación de contraseña
       if (data.password !== password) throw new Error("Contraseña incorrecta");
 
-      // Guardar sesión real
+      // Guardar sesión en el navegador
       localStorage.setItem("sesion", JSON.stringify(data));
       
-      // Si el login es en un modal en el index
+      // Cerrar modal si existe
       const modalElement = document.getElementById('loginModal');
       if (modalElement) {
         const modal = bootstrap.Modal.getInstance(modalElement);
-        modal.hide();
+        if (modal) modal.hide();
       }
 
       actualizarBotonSesion();
       
-      // Si el login es una página aparte, redirigir
-      if (window.location.pathname.includes("login.html")) {
+      // Redirigir si no estamos en el index
+      if (!window.location.pathname.endsWith("index.html") && window.location.pathname !== "/") {
         window.location.href = "index.html";
       }
 
@@ -94,7 +108,7 @@ if (formLogin) {
 // ========================
 function mostrarError(msg) {
   if (!mensaje) return;
-  mensaje.innerHTML = `<div class="alert alert-danger py-2">${msg}</div>`;
+  mensaje.innerHTML = `<div class="alert alert-danger py-2 small shadow-sm">${msg}</div>`;
 }
 
 function actualizarBotonSesion() {
@@ -106,18 +120,21 @@ function actualizarBotonSesion() {
   if (sesion) {
     authArea.innerHTML = `
       <div class="dropdown">
-        <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-          Hola, ${sesion.nombre.split(' ')[0]}
+        <button class="btn btn-light btn-sm dropdown-toggle shadow-sm" data-bs-toggle="dropdown">
+          <i class="bi bi-person-circle me-1"></i> Hola, ${sesion.nombre.split(' ')[0]}
         </button>
 
-        <ul class="dropdown-menu dropdown-menu-end shadow">
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0">
           <li class="px-3 py-2 text-center">
-            <strong>${sesion.nombre}</strong><br>
+            <div class="fw-bold text-truncate" style="max-width: 150px;">${sesion.nombre}</div>
             <small class="text-muted">${sesion.email}</small>
           </li>
           <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="perfil.html"><i class="bi bi-gear me-2"></i>Mi Perfil</a></li>
           <li>
-            <button class="dropdown-item text-danger" id="logout">Cerrar sesión</button>
+            <button class="dropdown-item text-danger" id="logout">
+              <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
+            </button>
           </li>
         </ul>
       </div>
@@ -130,22 +147,19 @@ function actualizarBotonSesion() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", actualizarBotonSesion);
+// ==========================================
+// INICIALIZACIÓN
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    actualizarBotonSesion();
 
-// ==========================================
-// CONTROL DEL CARRUSEL (AUTOMÁTICO Y RÁPIDO)
-// ==========================================
-document.addEventListener("DOMContentLoaded", function() {
+    // Control del Carrusel
     const myCarousel = document.querySelector('#carouselUnam');
-    
     if (myCarousel) {
-        const carousel = new bootstrap.Carousel(myCarousel, {
-            interval: 2500, // Tiempo de cambio (2.5 segundos)
+        new bootstrap.Carousel(myCarousel, {
+            interval: 2500,
             ride: 'carousel',
-            pause: false    // No se detiene si pasas el mouse
-        });
-        
-        // Refuerzo para asegurar que empiece a girar
-        carousel.cycle();
+            pause: false
+        }).cycle();
     }
 });
