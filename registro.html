@@ -38,6 +38,9 @@
         <input type="password" class="form-control" id="password" placeholder="Contraseña segura" required>
       </div>
       <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+      <div class="text-center mt-3">
+        <p class="small mb-0">¿Ya cuentas con cuenta? <a href="index.html" class="text-decoration-none fw-bold">Iniciar Sesión</a></p>
+      </div>
     </form>
 
     <div class="imagen-container mt-4 text-center">
@@ -48,10 +51,7 @@
   </div>
 </div>
 
-<!-- ORDEN CRÍTICO DE SCRIPTS -->
-<!-- 1. Librería Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- 2. Tu configuración global (window.supabaseClient) -->
 <script src="js/conexion.js"></script>
 
 <script>
@@ -71,7 +71,6 @@ form.addEventListener("submit", async function(e) {
   const cuenta   = cuentaEl.value.trim();
   const password = passwordEl.value;
 
-  // --- LISTA DE DOMINIOS AUTORIZADOS ---
   const dominiosPermitidos = [
     "@unam.mx", "@arquitectura.unam.mx", "@fad.unam.mx", "@ciencias.unam.mx",
     "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx",
@@ -82,21 +81,17 @@ form.addEventListener("submit", async function(e) {
 
   ];
 
-  // REGEX
   const emailRegex    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const cuentaRegex   = /^\d{9}$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
-  // Reset estilos
   [nombreEl, emailEl, cuentaEl, passwordEl].forEach(i => i.classList.remove("is-invalid", "is-valid"));
 
-  // --- VALIDACIONES FRONTEND ---
   if (!nombre) {
     nombreEl.classList.add("is-invalid");
     return mostrarError("El nombre es obligatorio");
   }
 
-  // Validación de correos de Facultades
   const esDominioValido = dominiosPermitidos.some(dom => email.endsWith(dom));
   if (!emailRegex.test(email) || !esDominioValido) {
     emailEl.classList.add("is-invalid");
@@ -114,7 +109,6 @@ form.addEventListener("submit", async function(e) {
   }
 
   try {
-    // Verificación de conexión[cite: 1]
     if (!window.supabaseClient) throw new Error("Error: No se pudo conectar con la base de datos.");
 
     const { data, error } = await window.supabaseClient
@@ -123,11 +117,11 @@ form.addEventListener("submit", async function(e) {
         nombre: nombre,
         email: email,
         numero_cuenta: cuenta,
-        password: password // Supabase cifra la comunicación vía SSL
+        password: password
       }]);
 
     if (error) {
-      if (error.code === '23505') { // Error de duplicado
+      if (error.code === '23505') { 
         emailEl.classList.add("is-invalid");
         cuentaEl.classList.add("is-invalid");
         throw new Error("El correo o número de cuenta ya están registrados");
