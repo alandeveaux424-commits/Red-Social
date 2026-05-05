@@ -24,7 +24,8 @@
 
     <form id="formRegistro">
       <div class="mb-3">
-        <input type="text" class="form-control" id="nombre" placeholder="Nombre completo" required>
+        <input type="text" class="form-control" id="nombre" placeholder="Nombre completo" 
+              pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$" title="Solo se permiten letras y acentos" required>
       </div>
       <div class="mb-3">
         <input type="email" class="form-control" id="email" placeholder="Correo institucional" required>
