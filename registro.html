@@ -28,7 +28,7 @@
       </div>
       <div class="mb-3">
         <input type="email" class="form-control" id="email" placeholder="Correo institucional" required>
-        <div class="form-text">Ej: usuario@ingenieria.unam.mx</div>
+        <div class="form-text">Ej: usuario@aragon.unam.mx</div>
       </div>
       <div class="mb-3">
         <input type="text" class="form-control" id="cuenta" placeholder="Número de cuenta (9 dígitos)" required>
@@ -99,7 +99,7 @@ form.addEventListener("submit", async function(e) {
   const esDominioValido = dominiosPermitidos.some(dom => email.endsWith(dom));
   if (!emailRegex.test(email) || !esDominioValido) {
     emailEl.classList.add("is-invalid");
-    return mostrarError("Usa un correo institucional válido (ej: @ingenieria.unam.mx)");
+    return mostrarError("Usa un correo institucional válido (ej: @aragon.unam.mx)");
   }
 
   if (!cuentaRegex.test(cuenta)) {
@@ -138,7 +138,7 @@ form.addEventListener("submit", async function(e) {
     mostrarExito("¡Cuenta creada correctamente! Redirigiendo...");
     form.reset();
 
-    setTimeout(() => { window.location.href = "login.html"; }, 1500);
+    setTimeout(() => { window.location.href = "index.html"; }, 1500);
 
   } catch (err) {
     console.error("Error en registro:", err.message);
