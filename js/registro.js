@@ -1,7 +1,7 @@
 const form = document.getElementById("formRegistro");
 const mensaje = document.getElementById("mensaje");
 
-form.addEventListener("submit", async function(e) { // Añadimos async para usar await con Supabase
+form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
   let nombre = document.getElementById("nombre");
@@ -14,6 +14,26 @@ form.addEventListener("submit", async function(e) { // Añadimos async para usar
   let emailVal = email.value.trim();
   let cuentaVal = cuenta.value.trim();
   let passwordVal = password.value;
+
+  // --- LISTA DE DOMINIOS PERMITIDOS ---
+  const dominiosPermitidos = [
+    "@unam.mx",
+    "@arquitectura.unam.mx",
+    "@fad.unam.mx",
+    "@ciencias.unam.mx",
+    "@politicas.unam.mx",
+    "@fca.unam.mx",
+    "@derecho.unam.mx",
+    "@economia.unam.mx",
+    "@filos.unam.mx",
+    "@ingenieria.unam.mx",
+    "@facmed.unam.mx",
+    "@fmvz.unam.mx",
+    "@musica.unam.mx",
+    "@odontologia.unam.mx",
+    "@psicologia.unam.mx",
+    "@quimica.unam.mx"
+  ];
 
   // REGEX
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,9 +51,12 @@ form.addEventListener("submit", async function(e) { // Añadimos async para usar
     return mostrarError("El nombre es obligatorio");
   }
 
-  if (!emailRegex.test(emailVal) || !emailVal.endsWith("@unam.mx")) {
+  // VALIDACIÓN DE CORREO (Regex + Lista de Dominios)
+  const esDominioValido = dominiosPermitidos.some(dominio => emailVal.endsWith(dominio));
+
+  if (!emailRegex.test(emailVal) || !esDominioValido) {
     email.classList.add("is-invalid");
-    return mostrarError("Solo se permiten correos @unam.mx");
+    return mostrarError("Correo no válido. Usa tu correo institucional de la UNAM.");
   }
 
   if (!cuentaRegex.test(cuentaVal)) {
@@ -46,9 +69,10 @@ form.addEventListener("submit", async function(e) { // Añadimos async para usar
     return mostrarError("Contraseña insegura (mín 8, mayúscula, número y símbolo)");
   }
 
-  // 🚀 CONEXIÓN CON SUPABASE (Sustituye al fetch de PHP)
+  // 🚀 CONEXIÓN CON SUPABASE
   try {
-    // Insertamos directamente en la tabla 'usuarios' que ya tienes
+    if (!window.supabaseClient) throw new Error("Error de conexión: Cliente no inicializado.");
+
     const { data, error } = await window.supabaseClient
       .from('usuarios')
       .insert([
@@ -56,13 +80,12 @@ form.addEventListener("submit", async function(e) { // Añadimos async para usar
           nombre: nombreVal, 
           email: emailVal, 
           numero_cuenta: cuentaVal, 
-          password: passwordVal // Supabase protege la conexión vía SSL automáticamente
+          password: passwordVal 
         }
       ]);
 
-    // Manejo de errores de la base de datos (Ej: Usuario ya existe)
     if (error) {
-      if (error.code === '23505') { // Código de PostgreSQL para duplicados (Unique constraint)
+      if (error.code === '23505') {
         email.classList.add("is-invalid");
         cuenta.classList.add("is-invalid");
         throw new Error("El correo o número de cuenta ya están registrados.");
@@ -70,18 +93,15 @@ form.addEventListener("submit", async function(e) { // Añadimos async para usar
       throw error;
     }
 
-    // 🟢 TODO SALIÓ BIEN
+    // 🟢 ÉXITO
     mostrarExito("Usuario registrado correctamente en la nube.");
 
-    // Marcar como válidos visualmente
     [nombre, email, cuenta, password].forEach(input => {
       input.classList.add("is-valid");
     });
 
-    // Limpiar formulario
     form.reset();
 
-    // 🔁 Redirigir al login después de un momento
     setTimeout(() => {
       window.location.href = "login.html"; 
     }, 1500);
@@ -92,13 +112,11 @@ form.addEventListener("submit", async function(e) { // Añadimos async para usar
   }
 });
 
-// 🔴 FUNCIÓN MOSTRAR ERROR
 function mostrarError(msg) {
   mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
   return false; 
 }
 
-// 🟢 FUNCIÓN MOSTRAR ÉXITO
 function mostrarExito(msg) {
   mensaje.innerHTML = `<div class="alert alert-success">${msg}</div>`;
 }
