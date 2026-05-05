@@ -3,22 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Red UNAM - Inicio</title>
+  <title>Red UNAM</title>
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="style/styles.css">
   <style>
-    .ratio-16x9 { border: 2px solid #0d6efd; }
-    .perfil-dropdown img { border: 2px solid #0d6efd; }
-    .nav-link#facultadNav { color: #ffc107 !important; font-weight: bold; } /* Color dorado para la facultad */
+    .nav-link#facultadNav { color: #ffc107 !important; font-weight: bold; }
   </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
+<!-- 🔵 NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
   <div class="container-fluid">
     <a class="navbar-brand d-flex align-items-center" href="index.html">
-      <img src="images/logoUNAM.png" width="45" class="me-2" alt="Logo UNAM">
+      <img src="images/logoUNAM.png" width="45" class="me-2">
       <strong>Red UNAM</strong>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -29,13 +28,12 @@
         <li class="nav-item"><a class="nav-link active" href="index.html">Inicio</a></li>
         <li class="nav-item"><a class="nav-link" href="noticias.html">Noticias</a></li>
         <li class="nav-item"><a class="nav-link" href="grupos.html">Grupos</a></li>
-        
-        <!-- 🎓 APARTADO DE FACULTAD DINÁMICA -->
+        <!-- 🎓 FACULTAD DINÁMICA -->
         <li class="nav-item">
           <a class="nav-link" href="facultad.html" id="facultadNav"></a>
         </li>
       </ul>
-      
+      <!-- 🔐 AUTH AREA -->
       <div id="authArea">
         <button class="btn btn-light btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#loginModal">
           Iniciar sesión
@@ -45,23 +43,24 @@
   </div>
 </nav>
 
-<!-- CONTENIDO PRINCIPAL -->
+<!-- CONTENIDO -->
 <div class="container mt-5 text-center">
-  <h1 class="display-5">Bienvenido a Red UNAM</h1>
-  <p class="lead text-muted">Comunidad estudiantil universitaria.</p>
+  <h1>Bienvenido a Red UNAM</h1>
+  <p class="lead">Comunidad estudiantil universitaria</p>
 </div>
 
+<!-- 🔵 GACETA -->
 <div class="container mt-4 mb-5">
-  <h3 class="text-center mb-3">📰 Gaceta UNAM</h3>
-  <div class="ratio ratio-16x9 border rounded shadow-sm bg-light">
-    <iframe src="https://www.gaceta.unam.mx/" title="Gaceta UNAM" style="border:0;" loading="lazy"></iframe>
+  <h3 class="text-center mb-3">Gaceta UNAM</h3>
+  <div class="ratio ratio-16x9 border rounded shadow bg-light">
+    <iframe src="https://www.gaceta.unam.mx/" style="border:0;" loading="lazy"></iframe>
   </div>
   <p class="text-center mt-3">
     <a href="https://www.gaceta.unam.mx/" target="_blank" class="btn btn-outline-primary btn-sm">Ir a Gaceta UNAM</a>
   </p>
 </div>
 
-<!-- MODAL LOGIN -->
+<!-- 🔥 MODAL LOGIN -->
 <div class="modal fade" id="loginModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg">
@@ -69,40 +68,38 @@
         <div class="text-end">
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="text-center mb-4">
-          <img src="images/pumaUNAM.png" width="60" class="mb-2">
+        <div class="text-center mb-3">
           <h3>Iniciar sesión</h3>
         </div>
-        
         <form id="formLogin">
+          <!-- IDs originales restaurados: email y password -->
           <div class="mb-3">
-            <input type="text" class="form-control" id="emailLogin" placeholder="Correo o número de cuenta" required>
+            <input type="text" class="form-control" id="email" placeholder="Correo @unam.mx o número de cuenta" required>
           </div>
           <div class="mb-3">
-            <input type="password" class="form-control" id="passwordLogin" placeholder="Contraseña" required>
+            <input type="password" class="form-control" id="password" placeholder="Contraseña" required>
           </div>
-          <button type="submit" class="btn btn-primary w-100 fw-bold">Entrar</button>
+          <button type="submit" class="btn btn-primary w-100 fw-bold">Iniciar sesión</button>
         </form>
-        
-        <p class="text-center mt-4 small">
+        <p class="text-center mt-3 small">
           ¿No tienes cuenta? <a href="registro.html" class="text-decoration-none">Regístrate aquí</a>
         </p>
-        <div id="mensaje" class="mt-2 text-center"></div>
+        <div id="mensaje" class="mt-3 text-center"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- SCRIPTS -->
+<!-- JS: Scripts de conexión y lógica -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/conexion.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-const form    = document.getElementById("formLogin");
+const form = document.getElementById("formLogin");
 const mensaje = document.getElementById("mensaje");
 
-// Mapa de dominios a nombres de Instituciones
+// Mapeo exacto de dominios a nombres de Institución
 const mapeoFacultades = {
   "@arquitectura.unam.mx": "Arquitectura",
   "@fad.unam.mx": "FAD",
@@ -125,10 +122,14 @@ const mapeoFacultades = {
 if (form) {
   form.addEventListener("submit", async function(e) {
     e.preventDefault();
-    const input    = document.getElementById("emailLogin").value.trim();
-    const password = document.getElementById("passwordLogin").value;
+
+    const input = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!input || !password) return mostrarError("Completa los campos");
 
     try {
+      // Conexión con Supabase usando el cliente global
       const { data, error } = await window.supabaseClient
         .from('usuarios')
         .select('*')
@@ -138,74 +139,82 @@ if (form) {
       if (error || !data) throw new Error("Credenciales incorrectas");
       if (data.password !== password) throw new Error("Contraseña incorrecta");
 
-      // Deducir la facultad del correo
-      let facultadDetectada = "Comunidad UNAM";
+      // Lógica para extraer el nombre de la institución según el correo
+      let nombreFacultad = "Comunidad UNAM";
       for (const dominio in mapeoFacultades) {
         if (data.email.endsWith(dominio)) {
-          facultadDetectada = mapeoFacultades[dominio];
+          nombreFacultad = mapeoFacultades[dominio];
           break;
         }
       }
 
-      // Guardar sesión incluyendo la facultad detectada
+      // Guardar sesión en LocalStorage con la facultad detectada
       localStorage.setItem("sesion", JSON.stringify({
         nombre: data.nombre,
         email: data.email,
-        facultad: facultadDetectada
+        facultad: nombreFacultad
       }));
 
-      mostrarExito("¡Bienvenido!");
+      mostrarExito("¡Bienvenido " + data.nombre + "!");
+
       setTimeout(() => {
-        bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        modal.hide();
         actualizarBotonSesion();
       }, 1000);
 
     } catch (err) {
-      mostrarError(err.message);
+      mostrarError(err.message || "Error de conexión");
     }
   });
 }
 
+function mostrarError(msg) { mensaje.innerHTML = `<div class="alert alert-danger py-2">${msg}</div>`; }
+function mostrarExito(msg) { mensaje.innerHTML = `<div class="alert alert-success py-2">${msg}</div>`; }
+
+// Función para actualizar la UI: Perfil + Facultad Dinámica
 function actualizarBotonSesion() {
   const authArea = document.getElementById("authArea");
   const facultadNav = document.getElementById("facultadNav");
   const sesion = JSON.parse(localStorage.getItem("sesion"));
 
   if (sesion) {
-    // 1. Mostrar la facultad en el menú al lado de Grupos
+    // 🎓 Mostrar facultad al lado de Grupos
     if (facultadNav) {
       facultadNav.innerHTML = `🎓 ${sesion.facultad}`;
     }
 
-    // 2. Mostrar el menú de usuario
+    // Mostrar menú de usuario
     authArea.innerHTML = `
       <div class="dropdown">
         <button class="btn btn-light btn-sm dropdown-toggle fw-bold" data-bs-toggle="dropdown">
           ${sesion.nombre.split(' ')[0]}
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow">
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:250px;">
           <li class="px-3 py-2 text-center">
-            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(sesion.nombre)}&background=0D6EFD&color=fff" class="rounded-circle mb-2" width="40">
-            <div class="fw-bold small">${sesion.nombre}</div>
-            <div class="text-muted small">${sesion.facultad}</div>
+            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(sesion.nombre)}&background=0D6EFD&color=fff" class="rounded-circle mb-2" width="50">
+            <div class="fw-bold">${sesion.nombre}</div>
+            <small class="text-muted">${sesion.facultad}</small>
           </li>
           <li><hr class="dropdown-divider"></li>
-          <li><button class="dropdown-item text-danger small" id="logout">Cerrar sesión</button></li>
+          <li><button class="dropdown-item text-danger" id="logout">Cerrar sesión</button></li>
         </ul>
       </div>`;
-    
+
     document.getElementById("logout").addEventListener("click", () => {
       localStorage.removeItem("sesion");
       location.reload();
     });
+
   } else {
-    if (facultadNav) facultadNav.innerHTML = ""; // Limpiar si no hay sesión
-    authArea.innerHTML = `<button class="btn btn-light btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#loginModal">Iniciar sesión</button>`;
+    // Limpiar si no hay sesión
+    if (facultadNav) facultadNav.textContent = "";
+    authArea.innerHTML = `
+      <button class="btn btn-light btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#loginModal">
+        Iniciar sesión
+      </button>`;
   }
 }
-
-function mostrarError(msg) { mensaje.innerHTML = `<div class="alert alert-danger py-2 mt-2 small">${msg}</div>`; }
-function mostrarExito(msg) { mensaje.innerHTML = `<div class="alert alert-success py-2 mt-2 small">${msg}</div>`; }
 
 document.addEventListener("DOMContentLoaded", actualizarBotonSesion);
 </script>
