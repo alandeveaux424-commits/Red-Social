@@ -113,7 +113,7 @@ form.addEventListener("submit", async function(e) {
     form.reset();
 
     setTimeout(() => {
-      window.location.href = "login.html"; 
+      window.location.href = "index.html"; 
     }, 1500);
 
   } catch (err) {
