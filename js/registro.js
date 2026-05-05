@@ -9,43 +9,22 @@ form.addEventListener("submit", async function(e) {
   let cuenta = document.getElementById("cuenta");
   let password = document.getElementById("password");
 
-  // Valores
   let nombreVal = nombre.value.trim();
   let emailVal = email.value.trim();
   let cuentaVal = cuenta.value.trim();
   let passwordVal = password.value;
 
-  // --- LISTA DE DOMINIOS PERMITIDOS ---
   const dominiosPermitidos = [
-    "@unam.mx",
-    "@arquitectura.unam.mx",
-    "@fad.unam.mx",
-    "@ciencias.unam.mx",
-    "@politicas.unam.mx",
-    "@fca.unam.mx",
-    "@derecho.unam.mx",
-    "@economia.unam.mx",
-    "@filos.unam.mx",
-    "@ingenieria.unam.mx",
-    "@facmed.unam.mx",
-    "@fmvz.unam.mx",
-    "@musica.unam.mx",
-    "@odontologia.unam.mx",
-    "@psicologia.unam.mx",
-    "@quimica.unam.mx"
-    "@aragon.unam.mx", 
-    "@acatlan.unam.mx", 
-    "@cuautitlan.unam.mx", 
-    "@iztacala.unam.mx", 
-    "@zaragoza.unam.mx",
-    "@enes.morelia.unam.mx", 
-    "@enes.leon.unam.mx", 
-    "@enes.juriquilla.unam.mx", 
-    "@cch.unam.mx", 
-    "@enp.unam.mx"
+    "@unam.mx", "@arquitectura.unam.mx", "@fad.unam.mx", "@ciencias.unam.mx",
+    "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx",
+    "@filos.unam.mx", "@ingenieria.unam.mx", "@facmed.unam.mx", "@fmvz.unam.mx",
+    "@musica.unam.mx", "@odontologia.unam.mx", "@psicologia.unam.mx", "@quimica.unam.mx",
+    "@aragon.unam.mx", "@acatlan.unam.mx", "@cuautitlan.unam.mx", "@iztacala.unam.mx", 
+    "@zaragoza.unam.mx", "@enes.morelia.unam.mx", "@enes.leon.unam.mx", 
+    "@enes.juriquilla.unam.mx", "@cch.unam.mx", "@enp.unam.mx"
   ];
 
-  // REGEX
+  const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/; 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const cuentaRegex = /^\d{9}$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
@@ -61,9 +40,13 @@ form.addEventListener("submit", async function(e) {
     return mostrarError("El nombre es obligatorio");
   }
 
-  // VALIDACIÓN DE CORREO (Regex + Lista de Dominios)
-  const esDominioValido = dominiosPermitidos.some(dominio => emailVal.endsWith(dominio));
+  if (!nombreRegex.test(nombreVal)) { 
+    nombre.classList.add("is-invalid");
+    return mostrarError("El nombre no debe contener números ni símbolos especiales (solo acentos)");
+  }
 
+  // VALIDACIÓN DE CORREO
+  const esDominioValido = dominiosPermitidos.some(dominio => emailVal.endsWith(dominio));
   if (!emailRegex.test(emailVal) || !esDominioValido) {
     email.classList.add("is-invalid");
     return mostrarError("Correo no válido. Usa tu correo institucional de la UNAM.");
@@ -79,20 +62,17 @@ form.addEventListener("submit", async function(e) {
     return mostrarError("Contraseña insegura (mín 8, mayúscula, número y símbolo)");
   }
 
-  // 🚀 CONEXIÓN CON SUPABASE
   try {
     if (!window.supabaseClient) throw new Error("Error de conexión: Cliente no inicializado.");
 
     const { data, error } = await window.supabaseClient
       .from('usuarios')
-      .insert([
-        { 
-          nombre: nombreVal, 
-          email: emailVal, 
-          numero_cuenta: cuentaVal, 
-          password: passwordVal 
-        }
-      ]);
+      .insert([{ 
+        nombre: nombreVal, 
+        email: emailVal, 
+        numero_cuenta: cuentaVal, 
+        password: passwordVal 
+      }]);
 
     if (error) {
       if (error.code === '23505') {
@@ -103,18 +83,10 @@ form.addEventListener("submit", async function(e) {
       throw error;
     }
 
-    // 🟢 ÉXITO
     mostrarExito("Usuario registrado correctamente en la nube.");
-
-    [nombre, email, cuenta, password].forEach(input => {
-      input.classList.add("is-valid");
-    });
-
+    [nombre, email, cuenta, password].forEach(input => input.classList.add("is-valid"));
     form.reset();
-
-    setTimeout(() => {
-      window.location.href = "index.html"; 
-    }, 1500);
+    setTimeout(() => { window.location.href = "index.html"; }, 1500);
 
   } catch (err) {
     console.error("ERROR EN REGISTRO:", err.message);
