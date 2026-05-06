@@ -73,14 +73,23 @@
             </div>
         </div>
     </main>
-
-    <script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/conexion.js"></script>
+<script>
         const fileInput = document.getElementById('upload-image');
         const previewContainer = document.getElementById('image-preview');
         const postText = document.getElementById('post-text');
         const timeline = document.getElementById('posts-timeline');
         let currentImageData = null;
 
+        // Validar sesión activa
+        const sesionData = localStorage.getItem("sesion");
+        if (!sesionData) {
+            window.location.replace("index.html");
+        }
+        const sesion = JSON.parse(sesionData);
+
+        // Previsualizar imagen
         fileInput.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
@@ -89,8 +98,8 @@
                     currentImageData = e.target.result;
                     previewContainer.innerHTML = `
                         <div class="preview-wrapper">
-                            <img src="${currentImageData}">
-                            <div class="remove-img" onclick="removeImage()">×</div>
+                            <img src="${currentImageData}" style="max-width: 100%; border-radius: 8px;">
+                            <div class="remove-img" onclick="removeImage()" style="cursor: pointer; color: red; font-weight: bold;">[x] Quitar imagen</div>
                         </div>`;
                 }
                 reader.readAsDataURL(file);
@@ -103,38 +112,119 @@
             currentImageData = null;
         }
 
-        function publicarPost() {
+        // Cargar publicaciones desde Supabase al iniciar
+        async function cargarPublicaciones() {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('publicaciones')
+                    .select('*')
+                    .order('creado_a_las', { ascending: false });
+
+                if (error) throw error;
+
+                // Limpiar timeline dejando solo el form de crear post
+                timeline.innerHTML = ''; 
+
+                data.forEach(post => {
+                    renderizarPostEnHTML(post);
+                });
+            } catch (err) {
+                console.error("Error al cargar posts:", err.message);
+            }
+        }
+
+        // 🚀 Guardar publicación en Supabase
+        async function publicarPost() {
             const text = postText.value.trim();
             if (text === "" && !currentImageData) return;
 
-            const post = document.createElement('article');
-            post.className = 'login-card';
+            try {
+                // (Opcional: subir currentImageData a Supabase Storage y obtendría la URL)
+                // Por ahora guardemos la imagen en base64 en multimedia_url si es pequeña, o lo dejamos null
+                
+                const nuevoPost = {
+                    autor_id: sesion.id,
+                    autor_nombre: sesion.nombre,
+                    contenido_texto: text,
+                    multimedia_url: currentImageData // Cuidado: Base64 es pesado, idealmente SUBIR a Storage
+                };
+
+                const { data, error } = await window.supabaseClient
+                    .from('publicaciones')
+                    .insert([nuevoPost])
+                    .select();
+
+                if (error) throw error;
+
+                // Renderizar en la parte superior sin recargar
+                renderizarPostEnHTML(data[0], true);
+                
+                // Limpiar formulario
+                postText.value = "";
+                removeImage();
+
+            } catch (err) {
+                alert("Error al publicar: " + err.message);
+            }
+        }
+
+        // Función auxiliar para dibujar el post
+        function renderizarPostEnHTML(post, alPrincipio = false) {
+            const fecha = new Date(post.creado_a_las).toLocaleString();
             
-            post.innerHTML = `
+            const article = document.createElement('article');
+            article.className = 'login-card';
+            article.id = `post-${post.id}`;
+            
+            // Si el post es mío, botón de eliminar
+            const btnEliminar = post.autor_id === sesion.id 
+                ? `<button class="delete-post-btn text-danger" onclick="eliminarEstePost(${post.id})">Eliminar</button>` 
+                : '';
+
+            article.innerHTML = `
                 <div class="post-header">
                     <div class="header-info">
                         <div class="profile-pic"></div>
                         <div>
-                            <strong>Mi Perfil</strong>
-                            <span class="post-date">• Justo ahora</span>
+                            <strong>${post.autor_nombre}</strong>
+                            <span class="post-date">• ${fecha}</span>
                         </div>
                     </div>
-                    <button class="delete-post-btn" onclick="eliminarEstePost(this)">Eliminar</button>
+                    ${btnEliminar}
                 </div>
-                <p class="post-body">${text}</p>
-                ${currentImageData ? `<div class="post-image-content"><img src="${currentImageData}"></div>` : ''}
+                <p class="post-body">${post.contenido_texto || ''}</p>
+                ${post.multimedia_url ? `<div class="post-image-content mt-2"><img src="${post.multimedia_url}" style="max-width: 100%; border-radius: 8px;"></div>` : ''}
             `;
 
-            timeline.prepend(post);
-            postText.value = "";
-            removeImage();
-        }
-
-        function eliminarEstePost(boton) {
-            if (confirm("¿Deseas eliminar este post?")) {
-                boton.closest('article').remove();
+            if (alPrincipio) {
+                timeline.prepend(article);
+            } else {
+                timeline.appendChild(article);
             }
         }
+
+        // Eliminar publicación de Supabase
+        async function eliminarEstePost(postId) {
+            if (confirm("¿Deseas eliminar este post?")) {
+                try {
+                    const { error } = await window.supabaseClient
+                        .from('publicaciones')
+                        .delete()
+                        .eq('id', postId)
+                        .eq('autor_id', sesion.id); // solo borra si es el autor
+
+                    if (error) throw error;
+
+                    // Quitar del HTML
+                    document.getElementById(`post-${postId}`).remove();
+                } catch (err) {
+                    alert("Error al eliminar: " + err.message);
+                }
+            }
+        }
+
+        // Iniciar la carga al abrir la página
+        document.addEventListener("DOMContentLoaded", cargarPublicaciones);
     </script>
 </body>
 </html>
