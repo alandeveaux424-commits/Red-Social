@@ -1,12 +1,23 @@
 const form = document.getElementById("formLogin");
 const mensaje = document.getElementById("mensaje");
 
-form.addEventListener("submit", function(e) {
+const btnTogglePassword = document.getElementById("btnTogglePassword");
+const passwordField = document.getElementById("password");
+const iconEye = document.getElementById("iconEye");
+
+if (btnTogglePassword) {
+    btnTogglePassword.addEventListener("click", () => {
+        const isPassword = passwordField.type === "password";
+        passwordField.type = isPassword ? "text" : "password";
+        iconEye.classList.toggle("bi-eye");
+        iconEye.classList.toggle("bi-eye-slash");
+    });
+}
+
+form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
   const inputField = document.getElementById("email");
-  const passwordField = document.getElementById("password");
-
   const input = inputField.value.trim();
   const password = passwordField.value;
 
@@ -14,84 +25,57 @@ form.addEventListener("submit", function(e) {
   inputField.classList.remove("is-invalid", "is-valid");
   passwordField.classList.remove("is-invalid", "is-valid");
 
-  // ❌ Validación básica
   if (!input || !password) {
     inputField.classList.add("is-invalid");
     passwordField.classList.add("is-invalid");
     return mostrarError("Completa todos los campos");
   }
 
-  const esEmail = input.includes("@");
+  try {
+    if (!window.supabaseClient) throw new Error("Error: Cliente de base de datos no listo.");
 
-  if (esEmail) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(input)) {
+    const { data, error } = await window.supabaseClient
+      .from('usuarios')
+      .select('*')
+      .or(`email.eq."${input}",numero_cuenta.eq."${input}"`)
+      .single();
+
+    if (error || !data) {
       inputField.classList.add("is-invalid");
-      return mostrarError("Correo inválido");
-    }
-  } else {
-    const cuentaRegex = /^\d{9}$/;
-    if (!cuentaRegex.test(input)) {
-      inputField.classList.add("is-invalid");
-      return mostrarError("Número de cuenta inválido (9 dígitos)");
-    }
-  }
-
-  const datos = new FormData();
-  datos.append("input", input);
-  datos.append("password", password);
-
-  fetch("/RedSocial/php/login.php", {
-    method: "POST",
-    body: datos
-  })
-  .then(res => res.text())
-  .then(text => {
-    console.log("RESPUESTA SERVIDOR:", text);
-
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("Respuesta inválida:", text);
-      return mostrarError("Error del servidor");
+      throw new Error("Usuario no encontrado.");
     }
 
-    if (!data || !data.status) {
-      return mostrarError("Respuesta incompleta del servidor");
-    }
-
-    if (data.status === "success") {
-
-      inputField.classList.add("is-valid");
-      passwordField.classList.add("is-valid");
-
-      mostrarExito("Bienvenido " + data.usuario.nombre + " ✔");
-
-      localStorage.setItem("sesion", JSON.stringify(data.usuario));
-
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 1000);
-
-    } else {
-      inputField.classList.add("is-invalid");
+    if (data.password !== password) {
       passwordField.classList.add("is-invalid");
-
-      mostrarError(data.message || "Credenciales incorrectas");
+      throw new Error("Contraseña incorrecta.");
     }
-  })
-  .catch(error => {
-    console.error("ERROR:", error);
-    mostrarError("Error de conexión con el servidor");
-  });
+
+    inputField.classList.add("is-valid");
+    passwordField.classList.add("is-valid");
+
+    mostrarExito(`¡Bienvenido de nuevo, ${data.nombre.split(' ')[0]}! ✔`);
+
+    localStorage.setItem("sesion", JSON.stringify({
+      id: data.id,
+      nombre: data.nombre,
+      email: data.email,
+      numero_cuenta: data.numero_cuenta
+    }));
+
+    setTimeout(() => {
+      window.location.href = "inicioRed.html"; 
+    }, 1200);
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err.message);
+    mostrarError(err.message);
+  }
 });
 
 function mostrarError(msg) {
-  mensaje.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
+  mensaje.innerHTML = `<div class="alert alert-danger py-2 small shadow-sm">${msg}</div>`;
 }
 
 function mostrarExito(msg) {
-  mensaje.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+  mensaje.innerHTML = `<div class="alert alert-success py-2 small shadow-sm">${msg}</div>`;
 }
