@@ -1031,8 +1031,8 @@
         ${btnEliminar}
       </div>
       <p class="post-body">${post.contenido_texto || ''}</p>
-      ${post.multimedia_url
-        ? `<div class="post-image-content"><img src="${post.multimedia_url}"></div>`
+      ${post.archivo_url
+        ? `<div class="post-image-content"><img src="${post.archivo_url}"></div>`
         : ''}`;
 
     alPrincipio ? timeline.prepend(article) : timeline.appendChild(article);
