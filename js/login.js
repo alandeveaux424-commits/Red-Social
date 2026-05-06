@@ -50,17 +50,18 @@ form.addEventListener("submit", async function(e) {
 
     // 3. INTENTO DE LOGIN CON SUPABASE AUTH
     const { data: authData, error: authError } = await window.supabaseClient.auth.signInWithPassword({
-      email: emailFinal,
-      password: password,
+      email: emailFinal, 
+      password: passwordVal
     });
 
     if (authError) {
-      if (authError.message === "Invalid login credentials") {
-        throw new Error("Correo o contraseña incorrectos");
+      if (authError.message.includes("Email not confirmed")) {
+        throw new Error("⚠️ Tu cuenta está creada, pero aún no has confirmado tu correo. Revisa tu bandeja de entrada o SPAM.");
+      } else if (authError.message === "Invalid login credentials") {
+        throw new Error("Correo o contraseña incorrectos.");
       }
-      throw authError;
+      throw authError; // Cualquier otro error
     }
-
     // 4. Obtener los datos del perfil (nombre, institución, etc.) para la sesión local
     const { data: perfil, error: perfilError } = await window.supabaseClient
       .from('usuarios')
