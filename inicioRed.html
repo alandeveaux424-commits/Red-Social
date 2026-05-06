@@ -56,13 +56,36 @@
   (function() {
     // 1. Mapeo de respaldo para evitar el "undefined"
     const institucionesMap = {
+      //FES
       "@aragon.unam.mx": "FES Aragón",
       "@iztacala.unam.mx": "FES Iztacala",
       "@acatlan.unam.mx": "FES Acatlán",
       "@cuautitlan.unam.mx": "FES Cuautitlán",
       "@zaragoza.unam.mx": "FES Zaragoza",
+
+      //Facultades en CU
+      "@arquitectura.unam.mx": "Facultad de Arquitectura",
+      "@fad.unam.mx": "Facultad de Artes y Diseño",
+      "@ciencias.unam.mx": "Facultad de Ciencias",
+      "@politicas.unam.mx": "Facultad de Ciencias Políticas y Sociales",
+      "@fca.unam.mx": "Facultad de Contaduría y Administración",
+      "@derecho.unam.mx": "Facultad de Derecho",
+      "@economia.unam.mx": "Facultad de Economía",
+      "@filos.unam.mx": "Facultad de Filosofía y Letras",
       "@ingenieria.unam.mx": "Facultad de Ingeniería",
-      "@unam.mx": "UNAM (General)"
+      "@facmed.unam.mx": "Facultad de Medicina",
+      "@fmvz.unam.mx": "Facultad de Medicina Veterinaria y Zootecnia",
+      "@musica.unam.mx": "Facultad de Música",
+      "@odontologia.unam.mx": "Facultad de Odontología",
+      "@psicologia.unam.mx": "Facultad de Psicología",
+      "@quimica.unam.mx": "Facultad de Química",
+
+      //ENES
+      "@enes.morelia.unam.mx": "ENES Morelia",
+      "@enes.leon.unam.mx": "ENES León",
+      "@enes.juriquilla.unam.mx": "ENES Juriquilla",
+      "@emes.merida.unam.mx": "ENES Mérida",
+      "@unam.mx": "Comunidad UNAM"
     };
 
     function obtenerInstitucion(sesion) {
