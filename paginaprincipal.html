@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página Principal - Red UNAM</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<header class="header-main">
+        <div class="top-bar">
+            <!-- Buscador Hover -->
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Buscar...">
+                <button class="search-btn">🔍</button>
+            </div>
+
+            <!-- Perfil -->
+            <div id="authArea">
+                <div class="perfil-info">
+                    <span class="username">Mi Perfil</span>
+                    <div class="profile-pic"></div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="navbar">
+            <div class="nav-content">
+                <ul class="nav-links">
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#">Explorar</a></li>
+                    <li><a href="#">Mensajes</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="feed-container">
+        <div class="posts-wrapper">
+            
+            <!-- TARJETA CREAR POST -->
+            <article class="login-card">
+                <h3 id="mensaje">Crear publicación</h3>
+                <textarea class="form-control" id="post-text" placeholder="¿Qué quieres compartir?" rows="3"></textarea>
+                
+                <div id="image-preview" class="image-preview-container"></div>
+
+                <div class="post-actions">
+                    <input type="file" id="upload-image" accept="image/*" hidden>
+                    <label for="upload-image" class="btn-attach">📷 Adjuntar Foto</label>
+                    <button class="btn-primary" onclick="publicarPost()">Publicar</button>
+                </div>
+            </article>
+
+            <div id="posts-timeline">
+                <!-- POST OFICIAL CON IMAGEN MINIATURA -->
+                <article class="login-card official-post">
+                    <div class="post-header">
+                        <div class="header-info">
+                            <div class="profile-pic official-pic"></div>
+                            <div>
+                                <strong>FES aragon UNAM ✅</strong>
+                                <span class="post-date">• Comunicado 05/05/26</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="post-body">#OrgulloUNAM.</p>
+                    <div class="post-image-content official-img-mini">
+                        <img src="https://scontent.fmex46-1.fna.fbcdn.net/v/t39.30808-6/690755363_1383621163796105_5224523420763221482_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=13d280&_nc_eui2=AeE0WOsx4dCsLMX4x-USNc_oBXUlKoc_-rkFdSUqhz_6udxMYicReVEaS2Tk8_JQLhKBToMuIIziTzaeDdfp1Uj_&_nc_ohc=jyZtb_n-zIsQ7kNvwGbkEN3&_nc_oc=AdrGx-NRcMPmr69b4Q6rHTJ1DjBNwx3RbtrSjjzpfI-DyYVBVcy_v2tjdSdGsdV7Z6U&_nc_zt=23&_nc_ht=scontent.fmex46-1.fna&_nc_gid=NPceYWVIth-1vcA-K4WrdA&_nc_ss=7b2a8&oh=00_Af5z3cymo1jX-iHPtU8qM1NhLw1cfzkCCBeHodIGlzptSQ&oe=6A005305" alt="Tech">
+                    </div>
+                </article>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const fileInput = document.getElementById('upload-image');
+        const previewContainer = document.getElementById('image-preview');
+        const postText = document.getElementById('post-text');
+        const timeline = document.getElementById('posts-timeline');
+        let currentImageData = null;
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImageData = e.target.result;
+                    previewContainer.innerHTML = `
+                        <div class="preview-wrapper">
+                            <img src="${currentImageData}">
+                            <div class="remove-img" onclick="removeImage()">×</div>
+                        </div>`;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function removeImage() {
+            fileInput.value = "";
+            previewContainer.innerHTML = "";
+            currentImageData = null;
+        }
+
+        function publicarPost() {
+            const text = postText.value.trim();
+            if (text === "" && !currentImageData) return;
+
+            const post = document.createElement('article');
+            post.className = 'login-card';
+            
+            post.innerHTML = `
+                <div class="post-header">
+                    <div class="header-info">
+                        <div class="profile-pic"></div>
+                        <div>
+                            <strong>Mi Perfil</strong>
+                            <span class="post-date">• Justo ahora</span>
+                        </div>
+                    </div>
+                    <button class="delete-post-btn" onclick="eliminarEstePost(this)">Eliminar</button>
+                </div>
+                <p class="post-body">${text}</p>
+                ${currentImageData ? `<div class="post-image-content"><img src="${currentImageData}"></div>` : ''}
+            `;
+
+            timeline.prepend(post);
+            postText.value = "";
+            removeImage();
+        }
+
+        function eliminarEstePost(boton) {
+            if (confirm("¿Deseas eliminar este post?")) {
+                boton.closest('article').remove();
+            }
+        }
+    </script>
+</body>
+</html>
