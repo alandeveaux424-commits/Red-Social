@@ -14,6 +14,7 @@
 </head>
 <body>
 
+<!-- 🔵 NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
   <div class="container-fluid">
     <a class="navbar-brand d-flex align-items-center" href="inicioRed.html">
@@ -53,6 +54,31 @@
 
 <script>
   (function() {
+    // 1. Mapeo de respaldo para evitar el "undefined"
+    const institucionesMap = {
+      "@aragon.unam.mx": "FES Aragón",
+      "@iztacala.unam.mx": "FES Iztacala",
+      "@acatlan.unam.mx": "FES Acatlán",
+      "@cuautitlan.unam.mx": "FES Cuautitlán",
+      "@zaragoza.unam.mx": "FES Zaragoza",
+      "@ingenieria.unam.mx": "Facultad de Ingeniería",
+      "@unam.mx": "UNAM (General)"
+    };
+
+    function obtenerInstitucion(sesion) {
+      // Si ya existe en la sesión, la usamos
+      if (sesion.institucion && sesion.institucion !== "undefined") return sesion.institucion;
+      
+      // Si no existe, la calculamos por el término del correo
+      const correo = sesion.email ? sesion.email.toLowerCase() : "";
+      const dominios = Object.keys(institucionesMap).sort((a, b) => b.length - a.length);
+      
+      for (const dominio of dominios) {
+        if (correo.endsWith(dominio)) return institucionesMap[dominio];
+      }
+      return "Comunidad UNAM";
+    }
+
     function cargarInterfaz() {
       const authArea = document.getElementById("authArea");
       const facultadNav = document.getElementById("facultadNav");
@@ -64,9 +90,11 @@
       }
 
       const sesion = JSON.parse(sesionData);
+      // Validamos la institución antes de mostrarla
+      const miInstitucion = obtenerInstitucion(sesion);
 
       if (facultadNav) {
-        facultadNav.innerHTML = `🎓 ${sesion.institucion}`;
+        facultadNav.innerHTML = `🎓 ${miInstitucion}`;
         facultadNav.classList.remove("auth-vacia");
       }
 
@@ -74,7 +102,7 @@
         authArea.innerHTML = `
           <div class="dropdown">
             <button class="btn btn-light btn-sm dropdown-toggle fw-bold" data-bs-toggle="dropdown">
-              ${sesion.nombre.split(' ')[0]}
+              ${sesion.nombre ? sesion.nombre.split(' ')[0] : 'Usuario'}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow p-3">
               <li class="text-center mb-2">
@@ -82,15 +110,13 @@
                      class="rounded-circle mb-2" width="55">
                 <div class="fw-bold text-primary">${sesion.nombre}</div>
                 <div class="small text-muted mt-1" style="word-break: break-all;">${sesion.email}</div>
-                <div class="fw-bold small text-info mt-1">${sesion.institucion}</div>
+                <div class="fw-bold small text-info mt-1">${miInstitucion}</div>
               </li>
-        
               <li>
                 <a class="dropdown-item text-center fw-bold mt-2 border rounded" href="perfil.html">
                   Ver Perfil
                 </a>
               </li>
-
               <li><hr class="dropdown-divider"></li>
               <li>
                 <button class="dropdown-item text-danger text-center fw-bold" id="logoutBtn">
@@ -120,6 +146,5 @@
     cargarInterfaz();
   })();
 </script>
-
 </body>
 </html>
