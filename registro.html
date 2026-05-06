@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro - Red UNAM</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Agregamos Bootstrap Icons para el ojo de la contraseña -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="style/styles.css">
 </head>
@@ -28,8 +27,7 @@
       <!-- Nombre -->
       <div class="mb-3">
         <label class="form-label small">Nombre completo</label>
-        <input type="text" class="form-control" id="nombre" placeholder="Nombre Apellido" 
-               pattern="^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$" title="Solo letras y espacios" required>
+        <input type="text" class="form-control" id="nombre" placeholder="Nombre Apellido" required>
       </div>
 
       <!-- Fecha de Nacimiento -->
@@ -51,11 +49,11 @@
         <input type="text" class="form-control" id="cuenta" placeholder="9 dígitos" maxlength="9" required>
       </div>
 
-      <!-- Contraseña con botón Ocultar/Ver -->
+      <!-- Contraseña -->
       <div class="mb-4">
         <label class="form-label small">Contraseña segura</label>
         <div class="input-group">
-          <input type="password" class="form-control" id="password" placeholder="••••••••" required>
+          <input type="password" class="password-field form-control" id="password" placeholder="••••••••" required>
           <button class="btn btn-outline-secondary" type="button" id="btnTogglePassword">
             <i class="bi bi-eye" id="iconEye"></i>
           </button>
@@ -74,123 +72,93 @@
   </div>
 </div>
 
-<!-- Scripts de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/conexion.js"></script>
 
 <script>
-// Elementos del DOM
 const form = document.getElementById("formRegistro");
 const mensaje = document.getElementById("mensaje");
 const btnTogglePassword = document.getElementById("btnTogglePassword");
 const passwordEl = document.getElementById("password");
 const iconEye = document.getElementById("iconEye");
 
-// --- FUNCIONALIDAD: VER / OCULTAR CONTRASEÑA ---
+// Ver/Ocultar Contraseña
 if (btnTogglePassword) {
     btnTogglePassword.addEventListener("click", function() {
-        // Alternar el tipo de input
-        const isPassword = passwordEl.getAttribute("type") === "password";
-        passwordEl.setAttribute("type", isPassword ? "text" : "password");
-        
-        // Alternar el icono de Bootstrap
+        const isPassword = passwordEl.type === "password";
+        passwordEl.type = isPassword ? "text" : "password";
         iconEye.classList.toggle("bi-eye");
         iconEye.classList.toggle("bi-eye-slash");
     });
 }
 
-// --- LÓGICA DE REGISTRO ---
 form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
-  // Referencias para validaciones visuales
   const nombreEl = document.getElementById("nombre");
   const emailEl = document.getElementById("email");
   const cuentaEl = document.getElementById("cuenta");
   const fechaNacEl = document.getElementById("fecha_nacimiento");
 
   const nombreVal = nombreEl.value.trim();
-  const emailVal = emailEl.value.trim();
+  const emailVal = emailEl.value.trim().toLowerCase();
   const cuentaVal = cuentaEl.value.trim();
   const passwordVal = passwordEl.value;
   const fechaNacVal = fechaNacEl.value;
 
-  // Dominios UNAM (puedes añadir más a esta lista)
-  const dominiosPermitidos = [
-    "@unam.mx", "@aragon.unam.mx", "@acatlan.unam.mx", "@cuautitlan.unam.mx", 
-    "@iztacala.unam.mx", "@zaragoza.unam.mx", "@ingenieria.unam.mx", "@cch.unam.mx",
-    "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx",
-    "@filos.unam.mx", "@facmed.unam.mx", "@quimica.unam.mx", "@psicologia.unam.mx"
-  ];
-
+  const dominiosPermitidos = ["@unam.mx", "@aragon.unam.mx", "@acatlan.unam.mx", "@cuautitlan.unam.mx", "@iztacala.unam.mx", "@zaragoza.unam.mx", "@ingenieria.unam.mx", "@cch.unam.mx", "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx", "@filos.unam.mx", "@facmed.unam.mx", "@quimica.unam.mx", "@psicologia.unam.mx", "@enp.unam.mx"];
   const cuentaRegex = /^\d{9}$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
   const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 
-  // Reset de estilos de error
   [nombreEl, emailEl, cuentaEl, passwordEl, fechaNacEl].forEach(i => i.classList.remove("is-invalid", "is-valid"));
 
-  // --- VALIDACIONES ---
+  // Validaciones
   if (!nombreRegex.test(nombreVal)) {
     nombreEl.classList.add("is-invalid");
-    return mostrarError("Nombre inválido (solo letras y acentos)");
+    return mostrarError("Nombre inválido (solo letras)");
   }
-
-  if (!fechaNacVal) {
-    fechaNacEl.classList.add("is-invalid");
-    return mostrarError("La fecha de nacimiento es requerida");
-  }
-
-  const esDominioValido = dominiosPermitidos.some(dom => emailVal.endsWith(dom));
-  if (!esDominioValido) {
+  if (!dominiosPermitidos.some(dom => emailVal.endsWith(dom))) {
     emailEl.classList.add("is-invalid");
-    return mostrarError("Usa un correo institucional UNAM válido");
+    return mostrarError("Usa un correo institucional UNAM");
   }
-
   if (!cuentaRegex.test(cuentaVal)) {
     cuentaEl.classList.add("is-invalid");
-    return mostrarError("El número de cuenta debe tener 9 dígitos");
+    return mostrarError("La cuenta debe ser de 9 dígitos");
   }
-
   if (!passwordRegex.test(passwordVal)) {
     passwordEl.classList.add("is-invalid");
-    return mostrarError("Contraseña insegura: requiere 8 caracteres, Mayúscula, Número y Símbolo");
+    return mostrarError("Contraseña muy débil");
   }
 
   try {
-    if (!window.supabaseClient) throw new Error("Error: Cliente de base de datos no listo.");
+    if (!window.supabaseClient) throw new Error("Cliente no listo.");
 
-    // Enviamos los datos a la tabla 'usuarios'
-    const { data, error } = await window.supabaseClient
-      .from('usuarios')
-      .insert([{
-        nombre: nombreVal,
-        email: emailVal,
-        numero_cuenta: cuentaVal,
-        password: passwordVal,
-        fecha_nacimiento: fechaNacVal
-      }]);
+    // 🚀 CAMBIO CLAVE: Usamos Auth para el registro
+    const { data, error } = await window.supabaseClient.auth.signUp({
+      email: emailVal,
+      password: passwordVal,
+      options: {
+        data: {
+          nombre_completo: nombreVal,
+          numero_cuenta: cuentaVal,
+          fecha_nacimiento: fechaNacVal
+        }
+      }
+    });
 
     if (error) {
-      if (error.code === '23505') {
-        emailEl.classList.add("is-invalid");
-        cuentaEl.classList.add("is-invalid");
-        throw new Error("El correo o el número de cuenta ya existen");
-      }
+      if (error.message.includes("already registered")) throw new Error("El correo ya está registrado");
       throw error;
     }
 
-    // Éxito
     [nombreEl, emailEl, cuentaEl, passwordEl, fechaNacEl].forEach(i => i.classList.add("is-valid"));
-    mostrarExito("¡Cuenta creada con éxito! Redirigiendo...");
+    mostrarExito("¡Registro exitoso! Revisa tu correo.");
     form.reset();
 
-    setTimeout(() => { 
-      window.location.href = "index.html"; 
-    }, 2000);
+    setTimeout(() => { window.location.href = "index.html"; }, 2000);
 
   } catch (err) {
-    console.error("Error en Registro:", err);
     mostrarError(err.message);
   }
 });
@@ -198,12 +166,9 @@ form.addEventListener("submit", async function(e) {
 function mostrarError(msg) {
   mensaje.innerHTML = `<div class="alert alert-danger py-2 small shadow-sm">${msg}</div>`;
 }
-
 function mostrarExito(msg) {
   mensaje.innerHTML = `<div class="alert alert-success py-2 small shadow-sm">${msg}</div>`;
 }
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
