@@ -1,7 +1,7 @@
 const form = document.getElementById("formRegistro");
 const mensaje = document.getElementById("mensaje");
 
-// --- NUEVO: Lógica para ver/ocultar contraseña ---
+// --- Lógica para ver/ocultar contraseña ---
 const btnTogglePassword = document.getElementById("btnTogglePassword");
 const passwordEl = document.getElementById("password");
 const iconEye = document.getElementById("iconEye");
@@ -10,7 +10,6 @@ if (btnTogglePassword) {
   btnTogglePassword.addEventListener("click", function() {
     const isPassword = passwordEl.type === "password";
     passwordEl.type = isPassword ? "text" : "password";
-    // Cambia el icono si usas Bootstrap Icons
     iconEye.classList.toggle("bi-eye");
     iconEye.classList.toggle("bi-eye-slash");
   });
@@ -28,7 +27,7 @@ form.addEventListener("submit", async function(e) {
 
   // Valores
   const nombreVal = nombre.value.trim();
-  const emailVal = email.value.trim();
+  const emailVal = email.value.trim().toLowerCase(); // Convertimos a minúsculas
   const cuentaVal = cuenta.value.trim();
   const passwordVal = password.value;
   const fechaNacVal = fechaNac.value;
@@ -69,7 +68,7 @@ form.addEventListener("submit", async function(e) {
   const esDominioValido = dominiosPermitidos.some(dominio => emailVal.endsWith(dominio));
   if (!emailRegex.test(emailVal) || !esDominioValido) {
     email.classList.add("is-invalid");
-    return mostrarError("Usa tu correo institucional de la UNAM.");
+    return mostrarError("Usa un correo institucional válido de la UNAM.");
   }
 
   if (!cuentaRegex.test(cuentaVal)) {
@@ -82,34 +81,38 @@ form.addEventListener("submit", async function(e) {
     return mostrarError("Contraseña insegura (mín 8, una mayúscula, un número y un símbolo)");
   }
 
-  // 🚀 ENVÍO A SUPABASE
+  // 🚀 ENVÍO A SUPABASE AUTH
   try {
     if (!window.supabaseClient) throw new Error("Error de conexión: Cliente no inicializado.");
 
-    const { data, error } = await window.supabaseClient
-      .from('usuarios')
-      .insert([{ 
-        nombre: nombreVal, 
-        email: emailVal, 
-        numero_cuenta: cuentaVal, 
-        password: passwordVal,
-        fecha_nacimiento: fechaNacVal 
-      }]);
+    // Cambiamos .from('usuarios').insert por auth.signUp
+    const { data, error } = await window.supabaseClient.auth.signUp({
+      email: emailVal,
+      password: passwordVal,
+      options: {
+        data: {
+          // Estos datos los leerá tu TRIGGER en SQL para llenar la tabla pública
+          nombre_completo: nombreVal,
+          numero_cuenta: cuentaVal,
+          fecha_nacimiento: fechaNacVal
+        }
+      }
+    });
 
     if (error) {
-      if (error.code === '23505') {
+      // Manejo de errores específicos de Supabase Auth
+      if (error.message.includes("already registered")) {
         email.classList.add("is-invalid");
-        cuenta.classList.add("is-invalid");
-        throw new Error("El correo o número de cuenta ya están registrados.");
+        throw new Error("Este correo ya está registrado.");
       }
       throw error;
     }
 
-    mostrarExito("¡Cuenta UNAM creada con éxito!");
+    mostrarExito("¡Cuenta UNAM creada con éxito! Revisa tu correo.");
     [nombre, email, cuenta, password, fechaNac].forEach(input => input.classList.add("is-valid"));
     form.reset();
     
-    setTimeout(() => { window.location.href = "index.html"; }, 1500);
+    setTimeout(() => { window.location.href = "index.html"; }, 2000);
 
   } catch (err) {
     console.error("ERROR EN REGISTRO:", err.message);
