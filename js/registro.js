@@ -81,17 +81,14 @@ form.addEventListener("submit", async function(e) {
     return mostrarError("Contraseña insegura (mín 8, una mayúscula, un número y un símbolo)");
   }
 
-  // 🚀 ENVÍO A SUPABASE AUTH
-  try {
-    if (!window.supabaseClient) throw new Error("Error de conexión: Cliente no inicializado.");
+try {
+    if (!window.supabaseClient) throw new Error("Cliente no listo.");
 
-    // Cambiamos .from('usuarios').insert por auth.signUp
     const { data, error } = await window.supabaseClient.auth.signUp({
       email: emailVal,
       password: passwordVal,
       options: {
         data: {
-          // Estos datos los leerá tu TRIGGER en SQL para llenar la tabla pública
           nombre_completo: nombreVal,
           numero_cuenta: cuentaVal,
           fecha_nacimiento: fechaNacVal
@@ -100,25 +97,26 @@ form.addEventListener("submit", async function(e) {
     });
 
     if (error) {
-      // Manejo de errores específicos de Supabase Auth
-      if (error.message.includes("already registered")) {
-        email.classList.add("is-invalid");
-        throw new Error("Este correo ya está registrado.");
-      }
+      if (error.message.includes("already registered")) throw new Error("El correo ya está registrado");
       throw error;
     }
 
-    mostrarExito("¡Cuenta UNAM creada con éxito! Revisa tu correo.");
-    [nombre, email, cuenta, password, fechaNac].forEach(input => input.classList.add("is-valid"));
-    form.reset();
-    
-    setTimeout(() => { window.location.href = "index.html"; }, 2000);
+    form.style.display = "none";
+    mensaje.innerHTML = `
+      <div class="alert alert-success py-4 shadow text-center" style="border-radius: 15px;">
+        <h4 class="fw-bold"><i class="bi bi-envelope-check-fill text-success" style="font-size: 2rem;"></i><br>¡Registro casi completo!</h4>
+        <p class="mb-2">Hemos enviado un correo de confirmación a <strong>${emailVal}</strong>.</p>
+        <hr>
+        <p class="small mb-3">Por favor, revisa tu bandeja de entrada (y la carpeta de SPAM). <strong>Debes hacer clic en el enlace para activar tu cuenta antes de iniciar sesión.</strong></p>
+        <a href="index.html" class="btn btn-outline-success fw-bold">Ir a Iniciar Sesión</a>
+      </div>
+    `;
+
+    // setTimeout(() => { window.location.href = "index.html"; }, 2000);
 
   } catch (err) {
-    console.error("ERROR EN REGISTRO:", err.message);
-    mostrarError(err.message || "Error al conectar con Supabase");
+    mostrarError(err.message);
   }
-});
 
 function mostrarError(msg) {
   mensaje.innerHTML = `<div class="alert alert-danger py-2 small shadow-sm">${msg}</div>`;
