@@ -994,7 +994,7 @@
         autor_id: sesion.id,
         autor_nombre: sesion.nombre,
         contenido_texto: text,
-        multimedia_url: currentImageData
+        archivo_url: currentImageData
       };
       const { data, error } = await window.supabaseClient
         .from('publicaciones').insert([nuevoPost]).select();
