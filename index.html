@@ -201,7 +201,7 @@ form.addEventListener("submit", async function(e) {
     }));
 
     mensaje.innerHTML = `<div class="alert alert-success py-2 small">¡Bienvenido, ${perfil.nombre}!</div>`;
-    setTimeout(() => { window.location.href = "inicioRed.html"; }, 1000);
+    setTimeout(() => { window.location.href = "paginaprincipal.html"; }, 1000);
 
   } catch (err) {
     [inputEl, passwordEl].forEach(i => i.classList.add("is-invalid"));
