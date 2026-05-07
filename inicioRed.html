@@ -33,7 +33,7 @@
           <a class="nav-link auth-vacia" href="facultad.html" id="facultadNav"></a>
         </li>
       </ul>
-               <div class="d-flex align-items-center position-relative">
+        <div class="d-flex align-items-center position-relative">
         <form class="d-flex me-3" id="searchForm" onsubmit="return false;">
           <input class="form-control form-control-sm me-2"
             type="search"
@@ -95,7 +95,7 @@ async function buscarUsuarios() {
     .from('usuarios')
     .select('nombre, email')
     .or(`nombre.ilike.%${query}%,email.ilike.%${query}%`)
-    .limit(6);
+    .limit(8);
 
   if (error) {
     console.error('Error Supabase:', error.message);
