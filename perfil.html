@@ -549,13 +549,8 @@
     document.getElementById('display-email').textContent  = s.email  || '';
 
     const bioEl = document.getElementById('display-bio');
-    if (s.bio) {
-      bioEl.textContent = s.bio;
-      bioEl.classList.remove('empty');
-    } else {
-      bioEl.textContent = 'Sin biografía aún.';
-      bioEl.classList.add('empty');
-    }
+    if (s.descripcion) { bioEl.textContent = s.descripcion; bioEl.classList.remove('empty'); }
+else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty'); }
 
     // Fecha miembro
     if (s.fecha_registro) {
@@ -567,8 +562,8 @@
     // Pre-llenar formulario de edición
     document.getElementById('edit-nombre').value = s.nombre || '';
     document.getElementById('edit-correo').value = s.email  || '';
-    document.getElementById('edit-bio').value    = s.bio    || '';
-  }
+    document.getElementById('edit-bio').value = s.descripcion || '';
+
 
   poblarPerfil(sesion);
 
@@ -722,7 +717,7 @@
 
     try {
       // Actualizar en Supabase
-      const updates = { nombre, email: correo, bio };
+      const updates = { nombre, email: correo, descripcion: bio };
       if (pass) updates.password = pass; // solo si cambió
 
       const { error } = await window.supabaseClient
