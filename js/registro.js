@@ -1,12 +1,21 @@
 const form = document.getElementById("formRegistro");
 const mensaje = document.getElementById("mensaje");
 
-// --- Lógica para ver/ocultar contraseña ---
+const fechaNacInput = document.getElementById("fecha_nacimiento");
+if (fechaNacInput) {
+    const hoy = new Date();
+    const anioLimite = hoy.getFullYear() - 17;
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    
+    const fechaMaximaValida = `${anioLimite}-${mes}-${dia}`;
+    fechaNacInput.max = fechaMaximaValida;
+}
 const btnTogglePassword = document.getElementById("btnTogglePassword");
 const passwordEl = document.getElementById("password");
 const iconEye = document.getElementById("iconEye");
 
-if (btnTogglePassword) {
+if (btnTogglePassword && passwordEl) {
   btnTogglePassword.addEventListener("click", function() {
     const isPassword = passwordEl.type === "password";
     passwordEl.type = isPassword ? "text" : "password";
@@ -18,71 +27,61 @@ if (btnTogglePassword) {
 form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
-  // Referencias a los elementos
   const nombre = document.getElementById("nombre");
   const email = document.getElementById("email");
   const cuenta = document.getElementById("cuenta");
   const password = document.getElementById("password");
   const fechaNac = document.getElementById("fecha_nacimiento");
 
-  // Valores
   const nombreVal = nombre.value.trim();
-  const emailVal = email.value.trim().toLowerCase(); // Convertimos a minúsculas
+  const emailVal = email.value.trim().toLowerCase();
   const cuentaVal = cuenta.value.trim();
   const passwordVal = password.value;
   const fechaNacVal = fechaNac.value;
 
-  // --- LISTA DE DOMINIOS PERMITIDOS ---
-  const dominiosPermitidos = [
-    "@unam.mx", "@arquitectura.unam.mx", "@fad.unam.mx", "@ciencias.unam.mx",
-    "@politicas.unam.mx", "@fca.unam.mx", "@derecho.unam.mx", "@economia.unam.mx",
-    "@filos.unam.mx", "@ingenieria.unam.mx", "@facmed.unam.mx", "@fmvz.unam.mx",
-    "@musica.unam.mx", "@odontologia.unam.mx", "@psicologia.unam.mx", "@quimica.unam.mx",
-    "@aragon.unam.mx", "@acatlan.unam.mx", "@cuautitlan.unam.mx", "@iztacala.unam.mx", 
-    "@zaragoza.unam.mx", "@enes.morelia.unam.mx", "@enes.leon.unam.mx", 
-    "@enes.juriquilla.unam.mx", "@cch.unam.mx", "@enp.unam.mx"
-  ];
+  const campos = [nombre, email, cuenta, password, fechaNac];
+  campos.forEach(input => input.classList.remove("is-invalid", "is-valid"));
 
-  // REGEX
-  const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const cuentaRegex = /^\d{9}$/;
-  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  try {
+    if (!nombreVal || !emailVal || !cuentaVal || !passwordVal || !fechaNacVal) {
+      throw new Error("Todos los campos son obligatorios.");
+    }
 
-  // Reset estilos
-  [nombre, email, cuenta, password, fechaNac].forEach(input => {
-    input.classList.remove("is-invalid", "is-valid");
-  });
+    const dominiosPermitidos = [
+        "@comunidad.unam.mx", 
+        "@fi.unam.mx", 
+        "@ingenieria.unam.mx", 
+        "@unam.mx"
+    ];
+    const esDominioValido = dominiosPermitidos.some(dom => emailVal.endsWith(dom));
 
-  // --- VALIDACIONES FRONTEND ---
-  if (!nombreVal || !nombreRegex.test(nombreVal)) {
-    nombre.classList.add("is-invalid");
-    return mostrarError("Nombre inválido (solo letras y acentos)");
-  }
+    if (!esDominioValido) {
+      email.classList.add("is-invalid");
+      throw new Error("Debes usar un correo institucional (@comunidad.unam.mx, @aragon.unam.mx, etc).");
+    }
 
-  if (!fechaNacVal) {
-    fechaNac.classList.add("is-invalid");
-    return mostrarError("La fecha de nacimiento es obligatoria");
-  }
+    const birthDate = new Date(fechaNacVal);
+    const today = new Date();
+    let edad = today.getFullYear() - birthDate.getFullYear();
+    const diferenciaMeses = today.getMonth() - birthDate.getMonth();
+    
+    if (diferenciaMeses < 0 || (diferenciaMeses === 0 && today.getDate() < birthDate.getDate())) {
+        edad--;
+    }
 
-  const esDominioValido = dominiosPermitidos.some(dominio => emailVal.endsWith(dominio));
-  if (!emailRegex.test(emailVal) || !esDominioValido) {
-    email.classList.add("is-invalid");
-    return mostrarError("Usa un correo institucional válido de la UNAM.");
-  }
+    if (edad < 17) {
+        fechaNac.classList.add("is-invalid");
+        throw new Error("Lo sentimos, debes tener al menos 17 años para registrarte.");
+    }
 
-  if (!cuentaRegex.test(cuentaVal)) {
-    cuenta.classList.add("is-invalid");
-    return mostrarError("Número de cuenta inválido (9 dígitos)");
-  }
+    if (passwordVal.length < 6) {
+        password.classList.add("is-invalid");
+        throw new Error("La contraseña debe tener al menos 6 caracteres.");
+    }
 
-  if (!passwordRegex.test(passwordVal)) {
-    password.classList.add("is-invalid");
-    return mostrarError("Contraseña insegura (mín 8, una mayúscula, un número y un símbolo)");
-  }
-
-try {
-    if (!window.supabaseClient) throw new Error("Cliente no listo.");
+    if (!window.supabaseClient) {
+        throw new Error("Error de conexión: No se pudo detectar el cliente de Supabase.");
+    }
 
     const { data, error } = await window.supabaseClient.auth.signUp({
       email: emailVal,
@@ -97,31 +96,37 @@ try {
     });
 
     if (error) {
-      if (error.message.includes("already registered")) throw new Error("El correo ya está registrado");
+      if (error.message.includes("already registered") || error.status === 400) {
+        email.classList.add("is-invalid");
+        throw new Error("Este correo ya está vinculado a una cuenta.");
+      }
       throw error;
     }
 
-    form.style.display = "none";
-    mensaje.innerHTML = `
-      <div class="alert alert-success py-4 shadow text-center" style="border-radius: 15px;">
-        <h4 class="fw-bold"><i class="bi bi-envelope-check-fill text-success" style="font-size: 2rem;"></i><br>¡Registro casi completo!</h4>
-        <p class="mb-2">Hemos enviado un correo de confirmación a <strong>${emailVal}</strong>.</p>
-        <hr>
-        <p class="small mb-3">Por favor, revisa tu bandeja de entrada (y la carpeta de SPAM). <strong>Debes hacer clic en el enlace para activar tu cuenta antes de iniciar sesión.</strong></p>
-        <a href="index.html" class="btn btn-outline-success fw-bold">Ir a Iniciar Sesión</a>
-      </div>
-    `;
-
-    // setTimeout(() => { window.location.href = "index.html"; }, 2000);
+    mostrarExito("¡Registro exitoso! Por favor, revisa tu correo para confirmar tu cuenta.");
+    
+    campos.forEach(input => input.classList.add("is-valid"));
+    
+    form.reset();
+    
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 3000);
 
   } catch (err) {
+    console.error("DETALLE ERROR REGISTRO:", err.message);
     mostrarError(err.message);
   }
+});
 
 function mostrarError(msg) {
-  mensaje.innerHTML = `<div class="alert alert-danger py-2 small shadow-sm">${msg}</div>`;
+  mensaje.textContent = msg;
+  mensaje.className = "alert alert-danger mt-3 animate-fade-in";
+  mensaje.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function mostrarExito(msg) {
-  mensaje.innerHTML = `<div class="alert alert-success py-2 small shadow-sm">${msg}</div>`;
+  mensaje.textContent = msg;
+  mensaje.className = "alert alert-success mt-3 animate-fade-in";
+  mensaje.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
