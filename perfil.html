@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
-    /* ── TOKENS (paginaprincipal) ── */
+    /* ── TOKENS (idénticos a paginaprincipal) ── */
     :root {
       --bg:          #0a0c10;
       --surface:     #111318;
@@ -370,6 +370,84 @@
       .search-container { max-width: 160px; }
       .stats-row { gap: 16px; }
     }
+
+    /* ── GRID DE DOS COLUMNAS (detalles + sesiones) ── */
+    .side-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .side-grid { grid-template-columns: 1fr; } }
+
+    /* Card lateral genérica */
+    .side-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--card-shadow);
+      animation: fadeUp .4s ease both;
+    }
+    .side-card-title {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px;
+    }
+
+    /* Filas de detalle académico */
+    .detail-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-bottom: 11px; font-size: 13px; color: #c9cdd8;
+    }
+    .detail-row:last-child { margin-bottom: 0; }
+    .detail-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .detail-label { font-size: 10px; color: var(--muted); }
+    .detail-value { font-weight: 600; color: var(--text); }
+
+    /* Badge de estado */
+    .badge-estado {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 999px; font-size: 10px; font-weight: 700;
+    }
+    .badge-activo  { background: rgba(52,211,153,0.15); color: var(--success); }
+    .badge-inactivo{ background: rgba(224,82,82,0.15);  color: var(--danger);  }
+
+    /* Sesiones */
+    .sesion-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .sesion-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .sesion-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success); flex-shrink: 0;
+      box-shadow: 0 0 6px var(--success);
+    }
+    .sesion-dot.inactiva { background: var(--muted); box-shadow: none; }
+    .sesion-info { flex: 1; min-width: 0; }
+    .sesion-nombre { font-size: 12px; font-weight: 600; color: var(--text); }
+    .sesion-meta   { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-close-sesion {
+      background: none; border: 1px solid rgba(224,82,82,0.3);
+      border-radius: 6px; padding: 3px 8px;
+      font-size: 10px; font-weight: 700; color: var(--danger);
+      cursor: pointer; font-family: 'Sora', sans-serif;
+      transition: background .2s; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-close-sesion:hover { background: rgba(224,82,82,0.12); }
+    .btn-close-all {
+      width: 100%; margin-top: 12px;
+      background: none; border: 1px solid rgba(224,82,82,0.25);
+      border-radius: 8px; padding: 7px;
+      font-size: 11px; font-weight: 700; color: var(--danger);
+      cursor: pointer; font-family: 'Sora', sans-serif;
+      transition: background .2s;
+    }
+    .btn-close-all:hover { background: rgba(224,82,82,0.1); }
+    .sesiones-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 0; }
   </style>
 </head>
 <body>
@@ -379,7 +457,7 @@
 <!-- ── HEADER ── -->
 <header class="header-main">
   <div class="top-bar">
-    <a class="logo" href="paginaprincipal.html">
+    <a class="logo" href="inicioRed.html">
       <div class="logo-mark">U</div>
       <span class="logo-text">Red UNAM</span>
     </a>
@@ -396,7 +474,7 @@
   </div>
   <nav class="navbar">
     <ul class="nav-links">
-      <li><a href="paginaprincipal.html">Inicio</a></li>
+      <li><a href="inicioRed.html">Inicio</a></li>
       <li><a href="#">Explorar</a></li>
       <li><a href="#">Mensajes</a></li>
       <li><a href="perfil.html" class="active">Mi Perfil</a></li>
@@ -446,6 +524,68 @@
         <button class="btn-logout" id="btn-logout">↪ Cerrar sesión</button>
       </div>
     </div>
+  </div>
+
+
+  <!-- DETALLES ACADÉMICOS + SESIONES ACTIVAS -->
+  <div class="side-grid">
+
+    <!-- Detalles académicos -->
+    <div class="side-card">
+      <div class="side-card-title">Detalles académicos</div>
+
+      <div class="detail-row">
+        <span class="detail-icon">✉️</span>
+        <div>
+          <div class="detail-label">Correo</div>
+          <div class="detail-value" id="det-email">—</div>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-icon">🎓</span>
+        <div>
+          <div class="detail-label">Institución</div>
+          <div class="detail-value" id="det-institucion">—</div>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-icon">🪪</span>
+        <div>
+          <div class="detail-label">Núm. de cuenta</div>
+          <div class="detail-value" id="det-cuenta">—</div>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-icon">🛡️</span>
+        <div>
+          <div class="detail-label">Estado</div>
+          <span class="badge-estado badge-activo" id="det-estado">Activo</span>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-icon">👁️</span>
+        <div>
+          <div class="detail-label">Privacidad</div>
+          <div class="detail-value" id="det-privacidad">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sesiones activas -->
+    <div class="side-card">
+      <div class="side-card-title">Sesiones activas</div>
+      <div id="sesiones-lista">
+        <div class="sesiones-empty">Cargando...</div>
+      </div>
+      <button class="btn-close-all" id="btn-cerrar-todas" style="display:none">
+        🚫 Cerrar todas las sesiones
+      </button>
+    </div>
+
   </div>
 
   <!-- PANEL DE EDICIÓN (inline, toggleable) -->
@@ -516,6 +656,32 @@
     if (s && s.foto_perfil) return s.foto_perfil;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(s.nombre || 'U')}&background=002f6c&color=c8a951&bold=true&size=128`;
   }
+  // Agrega esto donde cargas los datos del perfil del usuario al iniciar la app
+async function verificarSesionActiva(perfil) {
+    const miTokenLocal = localStorage.getItem('mi_sesion_ref');
+    
+    // Si no tiene token guardado, lo ignoramos (quizás es su primera vez)
+    if (!miTokenLocal) return; 
+
+    // Revisar si mi token local sigue en la lista de sesiones de la base de datos
+    const sesiones = perfil.sesiones_activas || [];
+    const sigoActivo = sesiones.some(sesion => sesion.token_ref === miTokenLocal);
+
+    if (!sigoActivo) {
+        // Alguien me cerró la sesión desde otro dispositivo
+        console.warn("Esta sesión fue cerrada de forma remota.");
+        localStorage.removeItem('mi_sesion_ref');
+        
+        // Destruir sesión local en Supabase
+        await window.supabaseClient.auth.signOut();
+        
+        // Redirigir al login
+        window.location.href = '/login.html'; // Cambia esto por tu ruta de login
+    }
+}
+
+// Llama a esta función justo después de obtener el `perfil` del usuario
+// verificarSesionActiva(perfil);
 
   function showToast(type, title, msg, duration = 3500) {
     const icons = { error: '🚫', ok: '✅', warn: '⚠️' };
@@ -548,9 +714,16 @@
     document.getElementById('display-nombre').textContent = s.nombre || '—';
     document.getElementById('display-email').textContent  = s.email  || '';
 
+    // Bio — campo real en DB es 'descripcion'
     const bioEl = document.getElementById('display-bio');
-    if (s.descripcion) { bioEl.textContent = s.descripcion; bioEl.classList.remove('empty'); }
-else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty'); }
+    const bioVal = s.descripcion || s.bio || '';
+    if (bioVal) {
+      bioEl.textContent = bioVal;
+      bioEl.classList.remove('empty');
+    } else {
+      bioEl.textContent = 'Sin biografía aún.';
+      bioEl.classList.add('empty');
+    }
 
     // Fecha miembro
     if (s.fecha_registro) {
@@ -560,14 +733,190 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     }
 
     // Pre-llenar formulario de edición
-    document.getElementById('edit-nombre').value = s.nombre || '';
-    document.getElementById('edit-correo').value = s.email  || '';
-    document.getElementById('edit-bio').value = s.descripcion || '';
- }
+    document.getElementById('edit-nombre').value = s.nombre       || '';
+    document.getElementById('edit-correo').value = s.email        || '';
+    document.getElementById('edit-bio').value    = s.descripcion  || s.bio || '';
+
+    // Siempre poblar detalles académicos también
+    poblarDetalles(s);
+  }
 
   poblarPerfil(sesion);
 
-  // ── CARGAR DATOS FRESCOS DE SUPABASE 
+
+  // ── INSTITUCIÓN POR CORREO (igual que perfil viejo) ──────────────────────
+  function obtenerInstitucion(email) {
+    if (!email) return 'Comunidad UNAM';
+    if (email.endsWith('@aragon.unam.mx'))       return 'FES Aragón';
+    if (email.endsWith('@ingenieria.unam.mx'))   return 'Facultad de Ingeniería';
+    if (email.endsWith('@ciencias.unam.mx'))     return 'Facultad de Ciencias';
+    if (email.endsWith('@comunidad.unam.mx'))    return 'UNAM Central';
+    if (email.endsWith('@unam.mx'))              return 'UNAM';
+    return 'Comunidad UNAM';
+  }
+
+  // ── POBLAR DETALLES ACADÉMICOS ────────────────────────────────────────────
+  function poblarDetalles(s) {
+    document.getElementById('det-email').textContent       = s.email         || '—';
+    document.getElementById('det-institucion').textContent = obtenerInstitucion(s.email);
+    document.getElementById('det-cuenta').textContent      = s.numero_cuenta || '—';
+    document.getElementById('det-privacidad').textContent  = s.privacidad    || '—';
+
+    const estadoEl = document.getElementById('det-estado');
+    const activo   = (s.estado || '').toLowerCase() === 'activo';
+    estadoEl.textContent = s.estado || 'Activo';
+    estadoEl.className   = 'badge-estado ' + (activo ? 'badge-activo' : 'badge-inactivo');
+  }
+
+  // ── SESIONES ACTIVAS ──────────────────────────────────────────────────────
+  // Guardamos cada sesión como un objeto en el array "sesiones_activas" en la
+  // tabla usuarios. Formato: [{ token, dispositivo, ip, fecha }]
+  // Si aún no tienes esa columna solo mostramos la sesión actual.
+
+  async function cargarSesiones() {
+    const lista = document.getElementById('sesiones-lista');
+    const btnTodas = document.getElementById('btn-cerrar-todas');
+
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('usuarios')
+        .select('sesiones_activas')
+        .eq('id', sesion.id)
+        .single();
+
+      if (error) throw error;
+
+      let sesiones = data.sesiones_activas || [];
+
+      // Si está vacío igual mostramos la sesión actual como "Esta sesión"
+      if (!Array.isArray(sesiones) || sesiones.length === 0) {
+        sesiones = [{
+          token: 'current',
+          dispositivo: navigator.platform || 'Navegador',
+          fecha: new Date().toISOString(),
+          actual: true
+        }];
+      } else {
+        // Marcar cuál es la actual (la más reciente o la que coincide con el token guardado)
+        sesiones = sesiones.map((s, i) => ({ ...s, actual: i === 0 }));
+      }
+
+      renderSesiones(sesiones);
+      if (sesiones.length > 1) btnTodas.style.display = 'block';
+
+    } catch (err) {
+      // Fallback: mostrar solo la sesión actual sin datos de DB
+      lista.innerHTML = `
+        <div class="sesion-item">
+          <div class="sesion-dot"></div>
+          <div class="sesion-info">
+            <div class="sesion-nombre">Esta sesión <span style="color:var(--gold);font-size:10px">● Actual</span></div>
+            <div class="sesion-meta">${navigator.platform || 'Navegador'}</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  // Iconos por tipo de dispositivo/navegador
+  function iconoDispositivo(s) {
+    const d = (s.dispositivo || '').toLowerCase();
+    if (d.includes('móvil') || d.includes('movil') || d.includes('iphone') || d.includes('android')) return '📱';
+    if (d.includes('tablet') || d.includes('ipad')) return '📟';
+    return '🖥️';
+  }
+  function iconoNavegador(s) {
+    const n = (s.navegador || '').toLowerCase();
+    if (n.includes('chrome'))  return 'Chrome';
+    if (n.includes('firefox')) return 'Firefox';
+    if (n.includes('safari'))  return 'Safari';
+    if (n.includes('edge'))    return 'Edge';
+    return s.navegador || 'Navegador';
+  }
+
+  function renderSesiones(sesiones) {
+    const lista = document.getElementById('sesiones-lista');
+    if (!sesiones.length) {
+      lista.innerHTML = '<div class="sesiones-empty">Sin sesiones registradas</div>';
+      return;
+    }
+
+    lista.innerHTML = sesiones.map((s, idx) => {
+      const fecha = s.fecha
+        ? new Date(s.fecha).toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+        : '—';
+      const esActual = s.actual || idx === 0;
+      const icono    = iconoDispositivo(s);
+      const nav      = iconoNavegador(s);
+      const plat     = s.plataforma ? ` · ${s.plataforma}` : '';
+      return `
+        <div class="sesion-item" id="sesion-item-${idx}">
+          <div class="sesion-dot ${esActual ? '' : 'inactiva'}"></div>
+          <div class="sesion-info">
+            <div class="sesion-nombre">
+              ${icono} ${s.dispositivo || 'Escritorio'} · ${nav}
+              ${esActual ? '<span style="color:var(--gold);font-size:10px"> ● Actual</span>' : ''}
+            </div>
+            <div class="sesion-meta">${fecha}${plat}</div>
+          </div>
+          ${!esActual
+            ? `<button class="btn-close-sesion" onclick="cerrarSesion(${idx})">Cerrar</button>`
+            : ''}
+        </div>`;
+    }).join('');
+  }
+
+  window.cerrarSesion = async function(idx) {
+    try {
+      const { data } = await window.supabaseClient
+        .from('usuarios').select('sesiones_activas').eq('id', sesion.id).single();
+
+      let sesiones = data?.sesiones_activas || [];
+      sesiones.splice(idx, 1);
+
+      await window.supabaseClient
+        .from('usuarios')
+        .update({ sesiones_activas: sesiones })
+        .eq('id', sesion.id);
+
+      document.getElementById(`sesion-item-${idx}`)?.remove();
+      showToast('ok', 'Sesión cerrada', '');
+
+      // Si solo queda 1, ocultar botón cerrar todas
+      const remaining = document.querySelectorAll('.sesion-item').length;
+      if (remaining <= 1) document.getElementById('btn-cerrar-todas').style.display = 'none';
+
+    } catch (err) {
+      showToast('error', 'Error al cerrar sesión', err.message);
+    }
+  };
+
+  document.getElementById('btn-cerrar-todas').addEventListener('click', async () => {
+if (!confirm('¿Cerrar todas las sesiones excepto la actual?')) return;
+    try {
+      // 1. Destruir las sesiones reales en Supabase (Kills all other devices)
+      const { error: signOutError } = await window.supabaseClient.auth.signOut({ scope: 'others' });
+      if (signOutError) throw signOutError;
+
+      // 2. Actualizar tu interfaz visual (como ya lo tienes)
+      const { data } = await window.supabaseClient
+        .from('usuarios').select('sesiones_activas').eq('id', sesion.id).single();
+
+      const sesiones = data?.sesiones_activas || [];
+      const soloActual = sesiones.length > 0 ? [sesiones[0]] : [];
+
+      await window.supabaseClient
+        .from('usuarios')
+        .update({ sesiones_activas: soloActual })
+        .eq('id', sesion.id);
+
+      cargarSesiones();
+      showToast('ok', 'Sesiones cerradas', 'Solo queda tu sesión actual activa.');
+    } catch (err) {
+      showToast('error', 'Error', err.message);
+    }
+});
+
+  // ── CARGAR DATOS FRESCOS DE SUPABASE ──────────────────────────────────────
   async function cargarDatosPerfil() {
     try {
       const { data, error } = await window.supabaseClient
@@ -578,7 +927,10 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
       if (error) throw error;
 
       // Actualizar localStorage con datos frescos
+      // data viene de SELECT * así que tiene: numero_cuenta, estado, privacidad, descripcion, etc.
       const sesionActualizada = { ...sesion, ...data };
+      // Actualizar el objeto sesion en memoria para que otras funciones lo usen
+      Object.assign(sesion, sesionActualizada);
       localStorage.setItem('sesion', JSON.stringify(sesionActualizada));
       poblarPerfil(sesionActualizada);
     } catch (err) {
@@ -587,7 +939,7 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     }
   }
 
-  // ── MIS PUBLICACIONES 
+  // ── MIS PUBLICACIONES ─────────────────────────────────────────────────────
   async function cargarMisPublicaciones() {
     const container = document.getElementById('mis-posts');
     try {
@@ -655,7 +1007,7 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     container.appendChild(card);
   }
 
-  // ── ELIMINAR POST 
+  // ── ELIMINAR POST ─────────────────────────────────────────────────────────
   window.eliminarPost = async function (postId, archivoUrl) {
     if (!confirm('¿Eliminar esta publicación?')) return;
     try {
@@ -681,7 +1033,7 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     }
   };
 
-  // ── TOGGLE EDICIÓN 
+  // ── TOGGLE EDICIÓN ────────────────────────────────────────────────────────
   const editPanel  = document.getElementById('edit-panel');
   const btnToggle  = document.getElementById('btn-toggle-edit');
   const btnCancel  = document.getElementById('btn-cancel-edit');
@@ -700,7 +1052,7 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     btnToggle.textContent = '✏️ Editar perfil';
   });
 
-  // ── GUARDAR CAMBIOS DE PERFIL 
+  // ── GUARDAR CAMBIOS DE PERFIL ─────────────────────────────────────────────
   document.getElementById('btn-save-edit').addEventListener('click', async () => {
     const nombre = document.getElementById('edit-nombre').value.trim();
     const correo = document.getElementById('edit-correo').value.trim();
@@ -717,7 +1069,7 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
 
     try {
       // Actualizar en Supabase
-      const updates = { nombre, email: correo, descripcion: bio };
+      const updates = { nombre, email: correo, bio };
       if (pass) updates.password = pass; // solo si cambió
 
       const { error } = await window.supabaseClient
@@ -747,7 +1099,7 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     }
   });
 
-  // ── CAMBIAR FOTO DE PERFIL 
+  // ── CAMBIAR FOTO DE PERFIL ────────────────────────────────────────────────
   document.getElementById('avatar-file-input').addEventListener('change', async function () {
     const file = this.files[0];
     if (!file) return;
@@ -791,16 +1143,24 @@ else { bioEl.textContent = 'Sin biografía aún.'; bioEl.classList.add('empty');
     this.value = '';
   });
 
-  // ── LOGOUT 
+  // ── LOGOUT ────────────────────────────────────────────────────────────────
   document.getElementById('btn-logout').addEventListener('click', () => {
     localStorage.removeItem('sesion');
     window.location.replace('index.html');
   });
 
-  // ── INIT 
-  document.addEventListener('DOMContentLoaded', () => {
-    cargarDatosPerfil();
+  // ── INIT ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => { 
+    
+    // 1. Primero cargamos (y esperamos) los datos frescos de Supabase
+    await cargarDatosPerfil(); 
+    
+    // 2. Verificamos la sesión usando tu objeto global 'sesion' (que ya tiene los datos frescos)
+    verificarSesionActiva(sesion); 
+    
+    // 3. Cargamos el resto de la interfaz
     cargarMisPublicaciones();
+    cargarSesiones();
   });
 
 })();
