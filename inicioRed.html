@@ -109,6 +109,9 @@
     }
 
     .comment-box { background: var(--surface2); border-radius: 8px; padding: 10px; margin-top: 10px; }
+    .hover-result:hover { background: rgba(200, 169, 100, 0.1) !important; transition: 0.2s; }
+    #resultadosBusqueda::-webkit-scrollbar { width: 6px; }
+    #resultadosBusqueda::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
   </style>
 </head>
   <!-- MODAL EDITAR POST -->
@@ -302,6 +305,7 @@ Guardar cambios
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/conexion.js"></script>
+<script src="js/buscador.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -1101,50 +1105,6 @@ Seguir
 </div>
 
 `).join('');
-
-}
-
-// ─────────────────────────────────────────────────────────────
-// BUSCADOR
-// ─────────────────────────────────────────────────────────────
-
-function setupSearch() {
-
-document.getElementById('inputBusqueda').oninput =
-async (e) => {
-
-const q = e.target.value.trim();
-
-const res =
-document.getElementById('resultadosBusqueda');
-
-if (q.length < 2) {
-
-res.innerHTML = "";
-
-return;
-}
-
-const { data } =
-await window.supabaseClient
-.from('usuarios')
-.select('id,nombre')
-.ilike('nombre', `%${q}%`)
-.limit(5);
-
-res.innerHTML = data.map(u => `
-
-<div
-class="p-2 border-bottom border-secondary text-white small"
-style="cursor:pointer;"
-onclick="location.href='perfil.html?id=${u.id}'"
->
-${u.nombre}
-</div>
-
-`).join('');
-
-};
 
 }
 
