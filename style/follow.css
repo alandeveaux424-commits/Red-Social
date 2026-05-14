@@ -1,9 +1,4 @@
-/* ================================================================
-   follow.css — Estilos de seguir / seguidores / modal
-   Usado en: perfil.html, inicioRed.html
-   ================================================================ */
 
-/* ── Contador clickeable en stats-row ── */
 .stat-clickable {
   cursor: pointer;
   transition: transform .15s;
@@ -11,7 +6,7 @@
 .stat-clickable:hover .stat-num { color: #e8c76a; }
 .stat-clickable:hover { transform: translateY(-2px); }
 
-/* ── Botón Seguir (perfil ajeno) ── */
+/*  Botón Seguir (perfil ajeno) */
 .btn-follow {
   display: inline-flex;
   align-items: center;
@@ -42,7 +37,7 @@
   color: #e05252;
 }
 
-/* ── Botón Seguir compacto (para listas/sugerencias) ── */
+/*  Botón Seguir compacto (para listas/sugerencias)  */
 .btn-follow-sm {
   font-size: 11px;
   font-weight: 700;
@@ -70,7 +65,7 @@
 }
 .btn-follow-sm:disabled { opacity: .5; cursor: default; }
 
-/* ── Modal overlay ── */
+/*  Modal overlay  */
 .follow-modal-overlay {
   position: fixed;
   inset: 0;
@@ -83,7 +78,7 @@
   animation: fmFadeIn .2s ease both;
 }
 
-/* ── Modal container ── */
+/*  Modal container  */
 .follow-modal {
   background: var(--surface, #111318);
   border: 1px solid var(--border, rgba(255,255,255,0.07));
@@ -131,7 +126,7 @@
   flex: 1;
 }
 
-/* ── Item de usuario dentro del modal ── */
+/*  Item de usuario dentro del modal  */
 .follow-user-item {
   display: flex;
   align-items: center;
@@ -157,7 +152,7 @@
 .follow-user-name  { font-size: 13px; font-weight: 700; color: var(--text, #e8eaf0); }
 .follow-user-email { font-size: 11px; color: var(--muted, #6b7280); margin-top: 2px; }
 
-/* ── Estado vacío dentro del modal ── */
+/*  Estado vacío dentro del modal  */
 .follow-empty {
   text-align: center;
   padding: 32px 16px;
@@ -166,9 +161,9 @@
 }
 .follow-empty .empty-icon { font-size: 28px; margin-bottom: 8px; }
 
-/* ── Animaciones ── */
+/*  Animaciones */
 @keyframes fmFadeIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fmSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
-/* ── Toast animación (si no hay sistema propio) ── */
+/*  Toast animación */
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
