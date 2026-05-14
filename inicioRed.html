@@ -523,7 +523,7 @@ function renderComentarioHTML(c, respuestas = []) {
   const fecha = new Date(c.creado_a_las).toLocaleString('es-MX', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
   });
-  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.autor_comentario || 'U')}&background=002f6c&color=c8a951&bold=true&size=40`;
+  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.autor_comentario_nombre || 'U')}&background=002f6c&color=c8a951&bold=true&size=40`;
 
   const respuestasHTML = respuestas.map(r => renderRespuestaHTML(r)).join('');
 
@@ -539,13 +539,13 @@ function renderComentarioHTML(c, respuestas = []) {
         <div id="comentario-content-${c.id}">
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-              <span style="font-size:12px;font-weight:700;color:var(--text);">${c.autor_comentario}</span>
+              <span style="font-size:12px;font-weight:700;color:var(--text);">${c.autor_comentario_nombre}</span>
               <span style="font-size:10px;color:var(--muted);">${fecha}</span>
             </div>
             <p style="font-size:13px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${c.id}">${c.contenido_comen}</p>
           </div>
           <div style="display:flex;gap:12px;margin-top:5px;padding-left:4px;">
-            <button onclick="mostrarInputRespuesta(${c.id}, ${c.publicacion_id}, '${c.autor_comentario}')"
+            <button onclick="mostrarInputRespuesta(${c.id}, ${c.publicacion_id}, '${c.autor_comentario_nombre}')"
               style="background:none;border:none;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;padding:0;font-family:inherit;transition:color .2s;"
               onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">
               💬 Responder
@@ -588,7 +588,7 @@ function renderComentarioHTML(c, respuestas = []) {
         <div id="input-respuesta-${c.id}" style="display:none;margin-top:8px;">
           <div style="display:flex;gap:8px;align-items:center;">
             <input type="text" id="texto-respuesta-${c.id}"
-              placeholder="Respondiendo a ${c.autor_comentario}..."
+              placeholder="Respondiendo a ${c.autor_comentario_nombre}..."
               style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
                      padding:7px 12px;color:var(--text);font-family:inherit;font-size:12px;outline:none;
                      transition:border-color .2s;"
@@ -619,7 +619,7 @@ function renderRespuestaHTML(r) {
   const fecha = new Date(r.creado_a_las).toLocaleString('es-MX', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
   });
-  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(r.autor_comentario || 'U')}&background=0047ab&color=c8a951&bold=true&size=40`;
+  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(r.autor_comentario_nombre || 'U')}&background=0047ab&color=c8a951&bold=true&size=40`;
 
   return `
     <div class="respuesta-item" id="comentario-${r.id}"
@@ -630,7 +630,7 @@ function renderRespuestaHTML(r) {
         <div id="comentario-content-${r.id}">
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
-              <span style="font-size:11px;font-weight:700;color:var(--text);">${r.autor_comentario}</span>
+              <span style="font-size:11px;font-weight:700;color:var(--text);">${r.autor_comentario_nombre}</span>
               <span style="font-size:10px;color:var(--muted);">${fecha}</span>
             </div>
             <p style="font-size:12px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${r.id}">${r.contenido_comen}</p>
@@ -664,7 +664,6 @@ function renderRespuestaHTML(r) {
     </div>`;
 }
 
-// ── ENVIAR COMENTARIO RAÍZ ────────────────────────────────────────────────────
 window.enviarComentario = async function (inputEl) {
   // inputEl puede llegar como elemento DOM o como event (onkeydown)
   const input = (inputEl instanceof HTMLElement) ? inputEl : inputEl.target;
@@ -684,7 +683,7 @@ window.enviarComentario = async function (inputEl) {
       .insert([{
         publicacion_id:   postId,
         autor_id:         sesion.id,
-        autor_comentario: sesion.nombre,
+        autor_comentario_nombre: sesion.nombre,
         contenido_comen:  texto,
         parent_id:        null
       }]);
@@ -697,7 +696,7 @@ window.enviarComentario = async function (inputEl) {
           .insert([{
             publicacion_id:   postId,
             autor_id:         sesion.id,
-            autor_comentario: sesion.nombre,
+            autor_comentario_nombre: sesion.nombre,
             contenido_comen:  texto
           }]);
         if (e2) throw e2;
@@ -760,7 +759,7 @@ window.enviarRespuesta = async function (parentId, postId) {
   const { error } = await window.supabaseClient.from('comentarios').insert([{
     publicacion_id:   postId,
     autor_id:         sesion.id,
-    autor_comentario: sesion.nombre,
+    autor_comentario_nombre: sesion.nombre,
     contenido_comen:  texto,
     parent_id:        parentId
   }]);
@@ -985,10 +984,12 @@ async function cargarPublicaciones(fechaInicio = null) {
     div.id = `post-${p.id}`;
     
     // TODO EL HTML DENTRO DE LAS COMILLAS INVERTIDAS
-    div.innerHTML = `
+ div.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-2" style="cursor:pointer" onclick="location.href='perfil.html?id=${p.autor_id}'">
-          <img src="${p.autor_foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.autor_nombre)}&background=random`}" class="rounded-circle" width="38" height="38" style="object-fit:cover;">
+        <div class="d-flex align-items-center gap-2" style="cursor:pointer"
+          onclick="location.href='perfil.html?id=${p.autor_id}'">
+          <img src="${p.autor_foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.autor_nombre)}&background=random`}"
+            class="rounded-circle" width="38" height="38" style="object-fit:cover;">
           <div>
             <h6 class="mb-0 fw-bold small">${p.autor_nombre}</h6>
             <small class="text-muted" style="font-size:10px;">${fecha}</small>
@@ -997,64 +998,65 @@ async function cargarPublicaciones(fechaInicio = null) {
         ${esMio ? `
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-warning" onclick="editarPost(${p.id})"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-danger" onclick="eliminarPost(${p.id})"><i class="bi bi-trash"></i></button>
-          </div>
-        ` : ''}
+            <button class="btn btn-sm btn-danger"  onclick="eliminarPost(${p.id})"><i class="bi bi-trash"></i></button>
+          </div>` : ''}
       </div>
+ 
       <p style="line-height:1.6;">${p.contenido_texto || ''}</p>
       ${media}
-
+ 
+      <!-- ── Barra de interacciones ── -->
       <div class="d-flex align-items-center gap-3 mt-3 pt-2 border-top border-secondary border-opacity-10">
-      <!-- Barra de interacciones -->
  
         <!-- Like -->
-        <button
-          onclick="gestionarLike(${p.id}, ${p.likes_count || 0}, '${p.autor_id}')"
+        <button onclick="gestionarLike(${p.id}, ${p.likes_count || 0}, '${p.autor_id}')"
           class="btn btn-sm ${userHasLiked ? 'text-warning' : 'text-white'} p-0 d-flex align-items-center gap-1 shadow-none"
           id="btn-like-${p.id}">
           <i class="bi ${userHasLiked ? 'bi-heart-fill' : 'bi-heart'}"></i>
           <span class="small" id="likes-count-${p.id}">${p.likes_count || 0}</span>
         </button>
  
-        <!-- Abrir/cerrar comentarios -->
-        <button
-          onclick="toggleSeccionComentarios(${p.id})"
+        <!-- Toggle comentarios -->
+        <button onclick="toggleSeccionComentarios(${p.id})"
           class="btn btn-sm text-white p-0 d-flex align-items-center gap-1 shadow-none"
           id="btn-toggle-comentarios-${p.id}">
           <i class="bi bi-chat"></i>
-          <span class="small" id="comentarios-count-${p.id}"></span>
+          <span class="small ms-1">Comentar</span>
         </button>
  
       </div>
  
-      <!-- SECCIÓN COMENTARIOS (colapsable) -->
-      <div id="seccion-comentarios-${p.id}" style="display:none; margin-top:14px;">
+      <!-- ── Sección comentarios (colapsable) ── -->
+      <div id="seccion-comentarios-${p.id}" style="display:none;margin-top:14px;">
  
-        <!-- Lista de comentarios -->
+        <!-- Lista -->
         <div id="comentarios-${p.id}" style="margin-bottom:12px;"></div>
  
         <!-- Input nuevo comentario -->
-        <div style="display:flex; gap:8px; align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;">
           <img src="${sesion.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(sesion.nombre)}&background=002f6c&color=c8a951&bold=true&size=40`}"
             width="28" height="28"
             style="border-radius:50%;border:1.5px solid var(--gold);object-fit:cover;flex-shrink:0;">
-          <input type="text" id="input-comentario-${p.id}"
+          <input type="text"
+            id="input-comentario-${p.id}"
+            data-post-id="${p.id}"
+            data-autor-id="${p.autor_id}"
             placeholder="Escribe un comentario..."
             style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:999px;
                    padding:7px 14px;color:var(--text);font-family:inherit;font-size:12px;outline:none;
                    transition:border-color .2s;"
             onfocus="this.style.borderColor='var(--gold)'"
             onblur="this.style.borderColor='var(--border)'"
-data-post-id="${p.id}"
-data-autor-id="${p.autor_id}"
-onkeydown="if(event.key==='Enter'){ enviarComentario(this); }"
-          <button onclick="enviarComentario(${p.id}, '${p.autor_id}')"
+            onkeydown="if(event.key==='Enter'){ enviarComentario(this); }">
+          <button
+            onclick="enviarComentario(document.getElementById('input-comentario-${p.id}'))"
             style="background:var(--gold);border:none;border-radius:50%;width:32px;height:32px;
-                   display:grid;place-items:center;cursor:pointer;flex-shrink:0;">
+                   display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:opacity .2s;"
+            onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
             <i class="bi bi-send-fill" style="color:#000;font-size:12px;"></i>
           </button>
         </div>
-      </div>
+ 
       </div>
     `;
     feed.appendChild(div);
