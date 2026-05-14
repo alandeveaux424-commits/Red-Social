@@ -239,6 +239,1465 @@ Guardar cambios
 <script>
 
 (function() {
+
+const sesion = JSON.parse(localStorage.getItem("sesion"));
+const BUCKET = 'publicaciones-media';
+
+function validarSesion() {
+
+const sesionGuardada = localStorage.getItem("sesion");
+
+if (!sesionGuardada) {
+window.location.replace("index.html");
+return false;
+}
+
+return true;
+}
+
+if (!validarSesion()) return;
+
+// ─────────────────────────────────────────────────────────────
+// UTILIDADES
+// ─────────────────────────────────────────────────────────────
+
+const getInst = (email) => {
+
+if (email?.endsWith('@aragon.unam.mx')) return "FES Aragón";
+if (email?.endsWith('@ingenieria.unam.mx')) return "Facultad de Ingeniería";
+
+return "Comunidad UNAM";
+};
+
+function getProfilePhoto(user = sesion) {
+
+return user.foto_perfil ||
+`https://ui-avatars.com/api/?name=${encodeURIComponent(user.nombre)}&background=c8a951&color=000&bold=true`;
+
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+
+async function init() {
+
+if (typeof FollowModule !== 'undefined') FollowModule.inyectarModal();
+
+renderUserHeader();
+
+await cargarPublicaciones();
+
+cargarNotificaciones();
+
+cargarSugerencias();
+
+setupSearch();
+
+}
+
+init();
+
+// ─────────────────────────────────────────────────────────────
+// HEADER
+// ─────────────────────────────────────────────────────────────
+
+function renderUserHeader() {
+
+const avatar = getProfilePhoto();
+
+document.getElementById("authArea").innerHTML = `
+<div class="dropdown">
+
+<div class="d-flex align-items-center gap-2 cursor-pointer"
+data-bs-toggle="dropdown">
+
+<span class="small fw-bold d-none d-md-block">
+${sesion.nombre.split(' ')[0]}
+</span>
+
+<img
+src="${avatar}"
+class="rounded-circle border border-warning"
+width="36"
+height="36"
+style="object-fit:cover;"
+>
+
+</div>
+
+<ul class="dropdown-menu dropdown-menu-end shadow-lg mt-2"
+style="background: var(--surface2); border: 1px solid var(--border);">
+
+<li class="p-3 text-center">
+
+<img
+src="${avatar}"
+class="rounded-circle mb-2"
+width="55"
+height="55"
+style="object-fit:cover;"
+>
+
+<div class="fw-bold text-white small">
+${sesion.nombre}
+</div>
+
+<div class="text-gold"
+style="font-size: 10px; color: var(--gold)">
+${getInst(sesion.email)}
+</div>
+
+</li>
+
+<li><hr class="dropdown-divider opacity-10"></li>
+
+<li>
+<a class="dropdown-item small" href="perfil.html?id=${sesion.id}">
+Ver Perfil
+</a>
+</li>
+
+<li>
+<button
+class="dropdown-item small text-danger"
+onclick="logout()"
+>
+Cerrar Sesión
+</button>
+</li>
+
+</ul>
+
+</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PREVIEW
+// ─────────────────────────────────────────────────────────────
+
+const postFile = document.getElementById("postFile");
+const filePreview = document.getElementById("filePreview");
+
+const removeBtn = document.createElement("button");
+
+removeBtn.className =
+"btn btn-sm btn-outline-danger mt-2 d-none";
+
+removeBtn.innerText = "Eliminar archivo";
+
+filePreview.after(removeBtn);
+
+postFile.addEventListener("change", () => {
+
+const file = postFile.files[0];
+
+if (!file) return;
+
+const url = URL.createObjectURL(file);
+
+if (file.type.startsWith("video")) {
+
+filePreview.innerHTML = `
+<video
+src="${url}"
+controls
+class="post-media"
+style="max-height:500px;object-fit:contain;background:black;"
+></video>
+`;
+
+} else {
+
+filePreview.innerHTML = `
+<img
+src="${url}"
+class="post-media"
+style="max-height:500px;object-fit:contain;background:black;"
+>
+`;
+}
+
+removeBtn.classList.remove("d-none");
+
+});
+
+removeBtn.onclick = () => {
+
+postFile.value = "";
+
+filePreview.innerHTML = "";
+
+removeBtn.classList.add("d-none");
+
+};
+
+ // --- ACCIONES ---
+  window.marcarLeidas = async () => {
+    await window.supabaseClient.from('notificaciones').update({ leida: true }).eq('usuario_id', sesion.id);
+    cargarNotificaciones();
+  };
+
+  window.gestionarLike = async (postId, currentLikes, autorId) => {
+    const { data: existe } = await window.supabaseClient.from('likes_usuarios').select('id').eq('user_id', sesion.id).eq('post_id', postId).maybeSingle();
+    if (existe) {
+      await window.supabaseClient.from('likes_usuarios').delete().eq('id', existe.id);
+      await window.supabaseClient.from('publicaciones').update({ likes_count: Math.max(0, currentLikes - 1) }).eq('id', postId);
+    } else {
+      await window.supabaseClient.from('likes_usuarios').insert([{ user_id: sesion.id, post_id: postId }]);
+      await window.supabaseClient.from('publicaciones').update({ likes_count: currentLikes + 1 }).eq('id', postId);
+      if(autorId !== sesion.id) {
+        await window.supabaseClient.from('notificaciones').insert([{ usuario_id: autorId, emisor_nombre: sesion.nombre, tipo: "le dio me gusta a tu post", leida: false }]);
+      }
+    }
+    cargarPublicaciones();
+  };
+  window.toggleSeccionComentarios = async function (postId) {
+  const seccion = document.getElementById(`seccion-comentarios-${postId}`);
+  const btn     = document.getElementById(`btn-toggle-comentarios-${postId}`);
+  const estaAbierta = seccion.style.display !== 'none';
+ 
+  if (estaAbierta) {
+    seccion.style.display = 'none';
+    btn.classList.remove('text-warning');
+  } else {
+    seccion.style.display = 'block';
+    btn.classList.add('text-warning');
+    await cargarComentarios(postId);   // cargar al abrir
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  MÓDULO DE COMENTARIOS — Red UNAM
+//  Pega este bloque dentro del IIFE principal de inicioRed.html
+//  justo después de la función cargarPublicaciones existente.
+//
+//  Columnas reales en Supabase:
+//    comentarios: id, publicacion_id, autor_id, autor_comentario,
+//                 contenido_comen, creado_a_las, parent_id
+//    publicaciones: id, autor_foto, autor_nombre, autor_id, ...
+// ═══════════════════════════════════════════════════════════════════
+
+// ── ESTADO DE EDICIÓN DE COMENTARIOS ─────────────────────────────────────────
+const comentarioEditState = {}; // { [comentarioId]: textoOriginal }
+
+// ── CARGAR COMENTARIOS DE UN POST ─────────────────────────────────────────────
+window.cargarComentarios = async function (postId) {
+  const container = document.getElementById(`comentarios-${postId}`);
+  if (!container) return;
+
+  container.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm" style="color:var(--gold)"></div></div>`;
+
+  const { data, error } = await window.supabaseClient
+    .from('comentarios')
+    .select('*')
+    .eq('publicacion_id', postId)
+    .is('parent_id', null)            // solo comentarios raíz
+    .order('creado_a_las', { ascending: true });
+
+  if (error) { container.innerHTML = `<p class="text-danger small p-2">Error cargando comentarios</p>`; return; }
+
+  // Para cada comentario raíz, traer sus respuestas
+  const respuestasMap = {};
+  if (data.length > 0) {
+    const ids = data.map(c => c.id);
+    const { data: respuestas } = await window.supabaseClient
+      .from('comentarios')
+      .select('*')
+      .in('parent_id', ids)
+      .order('creado_a_las', { ascending: true });
+    (respuestas || []).forEach(r => {
+      if (!respuestasMap[r.parent_id]) respuestasMap[r.parent_id] = [];
+      respuestasMap[r.parent_id].push(r);
+    });
+  }
+
+  container.innerHTML = data.length
+    ? data.map(c => renderComentarioHTML(c, respuestasMap[c.id] || [])).join('')
+    : `<p class="text-muted small px-1 mb-0" style="font-size:11px;">Sin comentarios aún. ¡Sé el primero!</p>`;
+};
+
+// ── RENDERIZAR UN COMENTARIO (con sus respuestas) ─────────────────────────────
+function renderComentarioHTML(c, respuestas = []) {
+  const esMio = c.autor_id === sesion.id;
+  const fecha = new Date(c.creado_a_las).toLocaleString('es-MX', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.autor_comentario || 'U')}&background=002f6c&color=c8a951&bold=true&size=40`;
+
+  const respuestasHTML = respuestas.map(r => renderRespuestaHTML(r)).join('');
+
+  return `
+    <div class="comentario-item" id="comentario-${c.id}" style="
+      display:flex; gap:10px; margin-bottom:14px; animation: fadeUp .3s ease both;">
+
+      <img src="${avatar}" width="30" height="30"
+        style="border-radius:50%;border:1.5px solid var(--gold);flex-shrink:0;object-fit:cover;margin-top:2px;">
+
+      <div style="flex:1;min-width:0;">
+        <!-- Contenido normal -->
+        <div id="comentario-content-${c.id}">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:12px;font-weight:700;color:var(--text);">${c.autor_comentario}</span>
+              <span style="font-size:10px;color:var(--muted);">${fecha}</span>
+            </div>
+            <p style="font-size:13px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${c.id}">${c.contenido_comen}</p>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:5px;padding-left:4px;">
+            <button onclick="mostrarInputRespuesta(${c.id}, ${c.publicacion_id}, '${c.autor_comentario}')"
+              style="background:none;border:none;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;padding:0;font-family:inherit;transition:color .2s;"
+              onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">
+              💬 Responder
+            </button>
+            ${esMio ? `
+            <button onclick="iniciarEditarComentario(${c.id})"
+              style="background:none;border:none;font-size:11px;font-weight:600;color:var(--gold);cursor:pointer;padding:0;font-family:inherit;opacity:.8;transition:opacity .2s;"
+              onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
+              ✏️ Editar
+            </button>
+            <button onclick="eliminarComentario(${c.id}, ${c.publicacion_id})"
+              style="background:none;border:none;font-size:11px;font-weight:600;color:var(--danger);cursor:pointer;padding:0;font-family:inherit;opacity:.8;transition:opacity .2s;"
+              onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
+              🗑 Eliminar
+            </button>` : ''}
+          </div>
+        </div>
+
+        <!-- Panel edición (oculto) -->
+        <div id="edit-comentario-${c.id}" style="display:none;margin-top:6px;">
+          <textarea id="edit-texto-${c.id}" rows="2"
+            style="width:100%;background:var(--surface2);border:1px solid var(--gold);border-radius:8px;
+                   padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;outline:none;"
+          >${c.contenido_comen}</textarea>
+          <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end;">
+            <button onclick="cancelarEditarComentario(${c.id})"
+              style="background:none;border:1px solid var(--border);border-radius:7px;padding:5px 14px;
+                     font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;">
+              Cancelar
+            </button>
+            <button onclick="confirmarEditarComentario(${c.id})"
+              style="background:linear-gradient(135deg,var(--accent),#0047ab);color:#fff;border:none;
+                     border-radius:7px;padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
+              Guardar
+            </button>
+          </div>
+        </div>
+
+        <!-- Input respuesta (oculto) -->
+        <div id="input-respuesta-${c.id}" style="display:none;margin-top:8px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="texto-respuesta-${c.id}"
+              placeholder="Respondiendo a ${c.autor_comentario}..."
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+                     padding:7px 12px;color:var(--text);font-family:inherit;font-size:12px;outline:none;
+                     transition:border-color .2s;"
+              onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"
+              onkeydown="if(event.key==='Enter') enviarRespuesta(${c.id}, ${c.publicacion_id})">
+            <button onclick="enviarRespuesta(${c.id}, ${c.publicacion_id})"
+              style="background:var(--gold);border:none;border-radius:8px;padding:7px 14px;
+                     font-size:12px;font-weight:700;color:#000;cursor:pointer;font-family:inherit;flex-shrink:0;">
+              Enviar
+            </button>
+            <button onclick="ocultarInputRespuesta(${c.id})"
+              style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;">×</button>
+          </div>
+        </div>
+
+        <!-- Respuestas anidadas -->
+        ${respuestas.length ? `
+          <div id="respuestas-${c.id}" style="margin-top:10px;padding-left:10px;border-left:2px solid var(--border);">
+            ${respuestasHTML}
+          </div>` : `<div id="respuestas-${c.id}" style="margin-top:10px;padding-left:10px;border-left:2px solid var(--border);display:none;"></div>`}
+      </div>
+    </div>`;
+}
+
+// ── RENDERIZAR RESPUESTA ──────────────────────────────────────────────────────
+function renderRespuestaHTML(r) {
+  const esMio = r.autor_id === sesion.id;
+  const fecha = new Date(r.creado_a_las).toLocaleString('es-MX', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(r.autor_comentario || 'U')}&background=0047ab&color=c8a951&bold=true&size=40`;
+
+  return `
+    <div class="respuesta-item" id="comentario-${r.id}"
+      style="display:flex;gap:8px;margin-bottom:10px;animation:fadeUp .3s ease both;">
+      <img src="${avatar}" width="24" height="24"
+        style="border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;object-fit:cover;margin-top:2px;">
+      <div style="flex:1;min-width:0;">
+        <div id="comentario-content-${r.id}">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:11px;font-weight:700;color:var(--text);">${r.autor_comentario}</span>
+              <span style="font-size:10px;color:var(--muted);">${fecha}</span>
+            </div>
+            <p style="font-size:12px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${r.id}">${r.contenido_comen}</p>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px;padding-left:4px;">
+            ${esMio ? `
+            <button onclick="iniciarEditarComentario(${r.id})"
+              style="background:none;border:none;font-size:10px;font-weight:600;color:var(--gold);cursor:pointer;padding:0;font-family:inherit;opacity:.8;"
+              onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">✏️ Editar</button>
+            <button onclick="eliminarComentario(${r.id}, ${r.publicacion_id})"
+              style="background:none;border:none;font-size:10px;font-weight:600;color:var(--danger);cursor:pointer;padding:0;font-family:inherit;opacity:.8;"
+              onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">🗑 Eliminar</button>` : ''}
+          </div>
+        </div>
+        <!-- Panel edición respuesta -->
+        <div id="edit-comentario-${r.id}" style="display:none;margin-top:6px;">
+          <textarea id="edit-texto-${r.id}" rows="2"
+            style="width:100%;background:var(--surface2);border:1px solid var(--gold);border-radius:8px;
+                   padding:7px 11px;color:var(--text);font-family:inherit;font-size:12px;resize:none;outline:none;"
+          >${r.contenido_comen}</textarea>
+          <div style="display:flex;gap:8px;margin-top:5px;justify-content:flex-end;">
+            <button onclick="cancelarEditarComentario(${r.id})"
+              style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 12px;
+                     font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;">Cancelar</button>
+            <button onclick="confirmarEditarComentario(${r.id})"
+              style="background:linear-gradient(135deg,var(--accent),#0047ab);color:#fff;border:none;
+                     border-radius:7px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── ENVIAR COMENTARIO RAÍZ ────────────────────────────────────────────────────
+window.enviarComentario = async function (inputEl) {
+  // inputEl puede llegar como elemento DOM o como event (onkeydown)
+  const input = (inputEl instanceof HTMLElement) ? inputEl : inputEl.target;
+  const texto   = input?.value.trim();
+  const postId  = parseInt(input?.dataset.postId);
+  const autorPostId = input?.dataset.autorId;
+ 
+  if (!texto || !postId) return;
+ 
+  const btnEnviar = input.nextElementSibling;
+  input.disabled = true;
+  if (btnEnviar) btnEnviar.disabled = true;
+ 
+  try {
+    const { error } = await window.supabaseClient
+      .from('comentarios')
+      .insert([{
+        publicacion_id:   postId,
+        autor_id:         sesion.id,
+        autor_comentario: sesion.nombre,
+        contenido_comen:  texto,
+        parent_id:        null
+      }]);
+ 
+    if (error) {
+      // Si falla por parent_id no existir, intenta sin él
+      if (error.message.includes('parent_id')) {
+        const { error: e2 } = await window.supabaseClient
+          .from('comentarios')
+          .insert([{
+            publicacion_id:   postId,
+            autor_id:         sesion.id,
+            autor_comentario: sesion.nombre,
+            contenido_comen:  texto
+          }]);
+        if (e2) throw e2;
+      } else {
+        throw error;
+      }
+    }
+ 
+    // Notificar al autor del post si no soy yo
+    if (autorPostId && autorPostId !== sesion.id) {
+      await window.supabaseClient.from('notificaciones').insert([{
+        usuario_id:    autorPostId,
+        emisor_nombre: sesion.nombre,
+        tipo:          'comentó tu publicación',
+        leida:         false
+      }]);
+    }
+ 
+    input.value = '';
+    await cargarComentarios(postId);
+ 
+  } catch (err) {
+    console.error('Error al comentar:', err.message);
+    alert('Error al comentar: ' + err.message);
+  } finally {
+    input.disabled = false;
+    if (btnEnviar) btnEnviar.disabled = false;
+    input.focus();
+  }
+};
+
+// ── RESPUESTA A COMENTARIO ────────────────────────────────────────────────────
+window.mostrarInputRespuesta = function (comentarioId, postId, nombreAutor) {
+  // Ocultar otros inputs de respuesta abiertos
+  document.querySelectorAll('[id^="input-respuesta-"]').forEach(el => {
+    if (el.id !== `input-respuesta-${comentarioId}`) el.style.display = 'none';
+  });
+  const el = document.getElementById(`input-respuesta-${comentarioId}`);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') {
+    document.getElementById(`texto-respuesta-${comentarioId}`)?.focus();
+  }
+};
+
+window.ocultarInputRespuesta = function (comentarioId) {
+  const el = document.getElementById(`input-respuesta-${comentarioId}`);
+  if (el) el.style.display = 'none';
+};
+
+window.enviarRespuesta = async function (parentId, postId) {
+  const input = document.getElementById(`texto-respuesta-${parentId}`);
+  const texto = input?.value.trim();
+  if (!texto) return;
+
+  // Obtener autor_id del comentario padre para notificar
+  const { data: padre } = await window.supabaseClient
+    .from('comentarios').select('autor_id').eq('id', parentId).single();
+
+  const { error } = await window.supabaseClient.from('comentarios').insert([{
+    publicacion_id:   postId,
+    autor_id:         sesion.id,
+    autor_comentario: sesion.nombre,
+    contenido_comen:  texto,
+    parent_id:        parentId
+  }]);
+  if (error) { console.error(error.message); return; }
+
+  // Notificar al autor del comentario padre
+  if (padre && padre.autor_id !== sesion.id) {
+    await window.supabaseClient.from('notificaciones').insert([{
+      usuario_id:   padre.autor_id,
+      emisor_nombre: sesion.nombre,
+      tipo:         'respondió tu comentario',
+      leida:        false
+    }]);
+  }
+
+  input.value = '';
+  ocultarInputRespuesta(parentId);
+  await cargarComentarios(postId); // recargar solo la sección de comentarios
+};
+
+// ── EDITAR COMENTARIO ─────────────────────────────────────────────────────────
+window.iniciarEditarComentario = function (comentarioId) {
+  const content = document.getElementById(`comentario-content-${comentarioId}`);
+  const editPanel = document.getElementById(`edit-comentario-${comentarioId}`);
+  if (!content || !editPanel) return;
+  // Guardar texto original por si cancela
+  comentarioEditState[comentarioId] = document.getElementById(`texto-comentario-${comentarioId}`)?.textContent || '';
+  content.style.display   = 'none';
+  editPanel.style.display = 'block';
+  document.getElementById(`edit-texto-${comentarioId}`)?.focus();
+};
+
+window.cancelarEditarComentario = function (comentarioId) {
+  document.getElementById(`comentario-content-${comentarioId}`).style.display = 'block';
+  document.getElementById(`edit-comentario-${comentarioId}`).style.display    = 'none';
+  // Restaurar texto original en el textarea
+  const ta = document.getElementById(`edit-texto-${comentarioId}`);
+  if (ta && comentarioEditState[comentarioId] !== undefined) {
+    ta.value = comentarioEditState[comentarioId];
+  }
+  delete comentarioEditState[comentarioId];
+};
+
+window.confirmarEditarComentario = async function (comentarioId) {
+  const nuevoTexto = document.getElementById(`edit-texto-${comentarioId}`)?.value.trim();
+  if (!nuevoTexto) return;
+
+  const btn = document.querySelector(`#edit-comentario-${comentarioId} button:last-child`);
+  if (btn) { btn.textContent = 'Guardando...'; btn.disabled = true; }
+
+  try {
+    const { error } = await window.supabaseClient
+      .from('comentarios')
+      .update({ contenido_comen: nuevoTexto })
+      .eq('id', comentarioId)
+      .eq('autor_id', sesion.id);
+    if (error) throw error;
+
+    // Actualizar DOM sin recargar todo
+    document.getElementById(`texto-comentario-${comentarioId}`).textContent = nuevoTexto;
+    document.getElementById(`edit-texto-${comentarioId}`).value = nuevoTexto;
+    cancelarEditarComentario(comentarioId);
+    delete comentarioEditState[comentarioId];
+
+  } catch (err) {
+    console.error('Error al editar comentario:', err.message);
+    if (btn) { btn.textContent = 'Guardar'; btn.disabled = false; }
+  }
+};
+
+// ── ELIMINAR COMENTARIO ───────────────────────────────────────────────────────
+window.eliminarComentario = async function (comentarioId, postId) {
+  if (!confirm('¿Eliminar este comentario?')) return;
+  try {
+    // ON DELETE CASCADE eliminará las respuestas hijas automáticamente
+    const { error } = await window.supabaseClient
+      .from('comentarios')
+      .delete()
+      .eq('id', comentarioId)
+      .eq('autor_id', sesion.id);
+    if (error) throw error;
+
+    document.getElementById(`comentario-${comentarioId}`)?.remove();
+  } catch (err) {
+    console.error('Error al eliminar comentario:', err.message);
+  }
+};
+// ─────────────────────────────────────────────────────────────
+// PUBLICAR
+// ─────────────────────────────────────────────────────────────
+
+document.getElementById("btnPublicar").onclick = async () => {
+
+const btn = document.getElementById("btnPublicar");
+
+const txt =
+document.getElementById("postContent").value.trim();
+
+const file = postFile.files[0];
+
+if (!txt && !file) return;
+
+btn.disabled = true;
+btn.innerText = "Publicando...";
+
+try {
+
+let url = null;
+let type = null;
+
+if (file) {
+
+const path =
+`posts/${Date.now()}_${file.name}`;
+
+const { error: uploadError } =
+await window.supabaseClient.storage
+.from(BUCKET)
+.upload(path, file);
+
+if (uploadError) throw uploadError;
+
+url = window.supabaseClient.storage
+.from(BUCKET)
+.getPublicUrl(path).data.publicUrl;
+
+type = file.type;
+}
+
+const { error } =
+await window.supabaseClient
+.from('publicaciones')
+.insert([{
+
+autor_id: sesion.id,
+
+autor_nombre: sesion.nombre,
+
+autor_foto: sesion.foto_perfil || null,
+
+contenido_texto: txt,
+
+archivo_url: url,
+
+tipo_archivo: type
+
+}]);
+
+if (error) throw error;
+
+document.getElementById("postContent").value = "";
+
+postFile.value = "";
+
+filePreview.innerHTML = "";
+
+removeBtn.classList.add("d-none");
+
+await cargarPublicaciones();
+
+} catch(err) {
+
+alert(err.message);
+
+} finally {
+
+btn.disabled = false;
+
+btn.innerText = "Publicar";
+}
+};
+
+// ─────────────────────────────────────────────────────────────
+// CARGAR POSTS
+// ─────────────────────────────────────────────────────────────
+
+async function cargarPublicaciones(fechaInicio = null) {
+  const feed = document.getElementById("feedPublicaciones");
+  feed.innerHTML = `<div class="text-center p-5"><div class="spinner-border" style="color:var(--gold)"></div></div>`;
+
+  // 1. MEJORA EN LA CONSULTA: Traemos los likes_usuarios para saber si yo (sesion.id) ya di like
+  let query = window.supabaseClient
+    .from('publicaciones')
+    .select('*, likes_usuarios(user_id)') // Esto trae los IDs de quienes dieron like
+    .order('creado_a_las', { ascending: false });
+
+  if (fechaInicio) {
+    query = query.gte('creado_a_las', `${fechaInicio}T00:00:00Z`);
+  }
+
+  const { data: posts, error } = await query;
+
+  if (error) {
+    feed.innerHTML = `<div class="text-center p-4 text-danger">Error cargando publicaciones</div>`;
+    return;
+  }
+
+  feed.innerHTML = "";
+  if (!posts.length) {
+    feed.innerHTML = `<div class="text-center p-5 text-muted small">No hay publicaciones en este periodo.</div>`;
+    return;
+  }
+
+  posts.forEach(p => {
+    const esMio = p.autor_id === sesion.id;
+    const fecha = new Date(p.creado_a_las).toLocaleString();
+    
+    // 2. VERIFICACIÓN: ¿El usuario actual está en la lista de likes de este post?
+    const userHasLiked = p.likes_usuarios?.some(like => like.user_id === sesion.id);
+    
+    let media = "";
+    if (p.archivo_url) {
+      if (p.tipo_archivo?.startsWith("video")) {
+        media = `<video src="${p.archivo_url}" controls class="post-media" style="max-height:650px;width:100%;object-fit:contain;background:black;border-radius:12px;"></video>`;
+      } else {
+        media = `<img src="${p.archivo_url}" class="post-media" style="max-height:650px;width:100%;object-fit:contain;background:black;border-radius:12px;">`;
+      }
+    }
+
+    const div = document.createElement("div");
+    div.className = "custom-card mb-4"; // Añadí un margen inferior
+    div.id = `post-${p.id}`;
+    
+    // TODO EL HTML DENTRO DE LAS COMILLAS INVERTIDAS
+    div.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2" style="cursor:pointer" onclick="location.href='perfil.html?id=${p.autor_id}'">
+          <img src="${p.autor_foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.autor_nombre)}&background=random`}" class="rounded-circle" width="38" height="38" style="object-fit:cover;">
+          <div>
+            <h6 class="mb-0 fw-bold small">${p.autor_nombre}</h6>
+            <small class="text-muted" style="font-size:10px;">${fecha}</small>
+          </div>
+        </div>
+        ${esMio ? `
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-warning" onclick="editarPost(${p.id})"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarPost(${p.id})"><i class="bi bi-trash"></i></button>
+          </div>
+        ` : ''}
+      </div>
+      <p style="line-height:1.6;">${p.contenido_texto || ''}</p>
+      ${media}
+
+      <div class="d-flex align-items-center gap-3 mt-3 pt-2 border-top border-secondary border-opacity-10">
+      <!-- Barra de interacciones -->
+ 
+        <!-- Like -->
+        <button
+          onclick="gestionarLike(${p.id}, ${p.likes_count || 0}, '${p.autor_id}')"
+          class="btn btn-sm ${userHasLiked ? 'text-warning' : 'text-white'} p-0 d-flex align-items-center gap-1 shadow-none"
+          id="btn-like-${p.id}">
+          <i class="bi ${userHasLiked ? 'bi-heart-fill' : 'bi-heart'}"></i>
+          <span class="small" id="likes-count-${p.id}">${p.likes_count || 0}</span>
+        </button>
+ 
+        <!-- Abrir/cerrar comentarios -->
+        <button
+          onclick="toggleSeccionComentarios(${p.id})"
+          class="btn btn-sm text-white p-0 d-flex align-items-center gap-1 shadow-none"
+          id="btn-toggle-comentarios-${p.id}">
+          <i class="bi bi-chat"></i>
+          <span class="small" id="comentarios-count-${p.id}"></span>
+        </button>
+ 
+      </div>
+ 
+      <!-- SECCIÓN COMENTARIOS (colapsable) -->
+      <div id="seccion-comentarios-${p.id}" style="display:none; margin-top:14px;">
+ 
+        <!-- Lista de comentarios -->
+        <div id="comentarios-${p.id}" style="margin-bottom:12px;"></div>
+ 
+        <!-- Input nuevo comentario -->
+        <div style="display:flex; gap:8px; align-items:center;">
+          <img src="${sesion.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(sesion.nombre)}&background=002f6c&color=c8a951&bold=true&size=40`}"
+            width="28" height="28"
+            style="border-radius:50%;border:1.5px solid var(--gold);object-fit:cover;flex-shrink:0;">
+          <input type="text" id="input-comentario-${p.id}"
+            placeholder="Escribe un comentario..."
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:999px;
+                   padding:7px 14px;color:var(--text);font-family:inherit;font-size:12px;outline:none;
+                   transition:border-color .2s;"
+            onfocus="this.style.borderColor='var(--gold)'"
+            onblur="this.style.borderColor='var(--border)'"
+data-post-id="${p.id}"
+data-autor-id="${p.autor_id}"
+onkeydown="if(event.key==='Enter'){ enviarComentario(this); }"
+          <button onclick="enviarComentario(${p.id}, '${p.autor_id}')"
+            style="background:var(--gold);border:none;border-radius:50%;width:32px;height:32px;
+                   display:grid;place-items:center;cursor:pointer;flex-shrink:0;">
+            <i class="bi bi-send-fill" style="color:#000;font-size:12px;"></i>
+          </button>
+        </div>
+      </div>
+      </div>
+    `;
+    feed.appendChild(div);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// EDITAR POST
+// ─────────────────────────────────────────────────────────────
+
+let editingPost = null;
+
+let nuevaImagenEditar = null;
+
+let eliminarMediaActual = false;
+
+window.editarPost = async (postId) => {
+
+const { data: post } =
+await window.supabaseClient
+.from("publicaciones")
+.select("*")
+.eq("id", postId)
+.single();
+
+if (!post) return;
+
+editingPost = post;
+
+nuevaImagenEditar = null;
+
+eliminarMediaActual = false;
+
+document.getElementById("editPostText").value =
+post.contenido_texto || "";
+
+renderEditPreview(post.archivo_url, post.tipo_archivo);
+
+const modal =
+new bootstrap.Modal(
+document.getElementById("editPostModal")
+);
+
+modal.show();
+
+};
+  function renderEditPreview(url, tipo) {
+
+const preview =
+document.getElementById("editPreview");
+
+if (!url) {
+
+preview.innerHTML = `
+<div class="text-muted small text-center py-4">
+Sin archivo
+</div>
+`;
+
+return;
+}
+
+if (tipo?.startsWith("video")) {
+
+preview.innerHTML = `
+<video
+src="${url}"
+controls
+class="post-media"
+style="
+max-height:400px;
+object-fit:contain;
+background:black;
+"
+></video>
+`;
+
+} else {
+
+preview.innerHTML = `
+<img
+src="${url}"
+class="post-media"
+style="
+max-height:400px;
+object-fit:contain;
+background:black;
+"
+>
+`;
+}
+
+}
+  document.getElementById("editFile")
+.addEventListener("change", (e) => {
+
+const file = e.target.files[0];
+
+if (!file) return;
+
+nuevaImagenEditar = file;
+
+const url = URL.createObjectURL(file);
+
+renderEditPreview(url, file.type);
+
+});
+  document.getElementById("btnRemoveCurrentMedia")
+.onclick = () => {
+
+eliminarMediaActual = true;
+
+nuevaImagenEditar = null;
+
+document.getElementById("editFile").value = "";
+
+renderEditPreview(null, null);
+
+};
+  document.getElementById("btnSaveEdit")
+.onclick = async () => {
+
+if (!editingPost) return;
+
+const btn =
+document.getElementById("btnSaveEdit");
+
+btn.disabled = true;
+
+btn.innerText = "Guardando...";
+
+try {
+
+let archivo_url = editingPost.archivo_url;
+
+let tipo_archivo = editingPost.tipo_archivo;
+
+// eliminar media anterior
+
+if (eliminarMediaActual && archivo_url) {
+
+const path =
+archivo_url.split(`/storage/v1/object/public/${BUCKET}/`)[1];
+
+if (path) {
+
+await window.supabaseClient.storage
+.from(BUCKET)
+.remove([path]);
+
+}
+
+archivo_url = null;
+
+tipo_archivo = null;
+}
+
+// subir nueva
+
+if (nuevaImagenEditar) {
+
+const path =
+`posts/${Date.now()}_${nuevaImagenEditar.name}`;
+
+await window.supabaseClient.storage
+.from(BUCKET)
+.upload(path, nuevaImagenEditar);
+
+archivo_url =
+window.supabaseClient.storage
+.from(BUCKET)
+.getPublicUrl(path).data.publicUrl;
+
+tipo_archivo =
+nuevaImagenEditar.type;
+}
+
+await window.supabaseClient
+.from("publicaciones")
+.update({
+
+contenido_texto:
+document.getElementById("editPostText").value,
+
+archivo_url,
+
+tipo_archivo
+
+})
+.eq("id", editingPost.id)
+.eq("autor_id", sesion.id);
+
+bootstrap.Modal
+.getInstance(
+document.getElementById("editPostModal")
+)
+.hide();
+
+editingPost = null;
+
+await cargarPublicaciones();
+
+} catch(err) {
+
+alert(err.message);
+
+} finally {
+
+btn.disabled = false;
+
+btn.innerText = "Guardar cambios";
+
+}
+
+};
+  
+
+// ─────────────────────────────────────────────────────────────
+// ELIMINAR
+// ─────────────────────────────────────────────────────────────
+
+window.eliminarPost = async (postId) => {
+
+if (!confirm("¿Eliminar publicación?")) return;
+
+const { data: post } =
+await window.supabaseClient
+.from("publicaciones")
+.select("archivo_url")
+.eq("id", postId)
+.single();
+
+if (post?.archivo_url) {
+
+const path =
+post.archivo_url
+.split(`/storage/v1/object/public/${BUCKET}/`)[1];
+
+if (path) {
+
+await window.supabaseClient.storage
+.from(BUCKET)
+.remove([path]);
+
+}
+}
+
+await window.supabaseClient
+.from("publicaciones")
+.delete()
+.eq("id", postId)
+.eq("autor_id", sesion.id);
+
+document.getElementById(`post-${postId}`)?.remove();
+
+};
+
+// ─────────────────────────────────────────────────────────────
+// LOGOUT
+// ─────────────────────────────────────────────────────────────
+
+window.logout = () => {
+
+localStorage.removeItem("sesion");
+
+window.location.href = "index.html";
+
+};
+
+// ─────────────────────────────────────────────────────────────
+// NOTIFICACIONES
+// ─────────────────────────────────────────────────────────────
+
+async function cargarNotificaciones() {
+
+const { data: notifs } =
+await window.supabaseClient
+.from('notificaciones')
+.select('*')
+.eq('usuario_id', sesion.id)
+.order('creado_a_las', { ascending: false })
+.limit(8);
+
+const badge =
+document.getElementById("badge-notificaciones");
+
+const lista =
+document.getElementById("lista-notificaciones");
+
+const unread =
+notifs?.filter(n => !n.leida).length || 0;
+
+badge.innerText = unread;
+
+unread > 0
+? badge.classList.remove("d-none")
+: badge.classList.add("d-none");
+
+lista.innerHTML = notifs?.length ?
+
+notifs.map(n => `
+<li class="p-2 small border-bottom border-secondary">
+<b>${n.emisor_nombre}</b> ${n.tipo}
+</li>
+`).join('')
+
+:
+
+'<li class="text-center p-3 small">Sin novedades</li>';
+
+}
+
+// ─────────────────────────────────────────────────────────────
+// SUGERENCIAS
+// ─────────────────────────────────────────────────────────────
+
+async function cargarSugerencias() {
+
+try {
+
+const { data: users } =
+await window.supabaseClient
+.from('usuarios')
+.select('id, nombre, email, foto_perfil')
+.neq('id', sesion.id)
+.limit(5);
+
+if (!users || users.length === 0) {
+  document.getElementById("listaSugerencias").innerHTML = '<p class="text-muted small text-center">Sin sugerencias</p>';
+  return;
+}
+
+// Intentar obtener a quiénes ya sigo (la tabla puede no existir aún)
+let yaSigo = new Set();
+try {
+  const { data: siguiendo } = await window.supabaseClient
+    .from('seguidores')
+    .select('seguido_id')
+    .eq('seguidor_id', sesion.id);
+  yaSigo = new Set((siguiendo || []).map(r => r.seguido_id));
+} catch (_) { /* tabla seguidores aún no existe, ignorar */ }
+
+document.getElementById("listaSugerencias").innerHTML =
+users.map(u => {
+  const avatar = u.foto_perfil
+    || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nombre)}&background=random`;
+  const esSiguiendo = yaSigo.has(u.id);
+  return `
+<div class="d-flex align-items-center justify-content-between mb-3">
+
+<div class="d-flex align-items-center gap-2" style="cursor:pointer" onclick="location.href='perfil.html?id=${u.id}'">
+
+<img
+src="${avatar}"
+class="rounded-circle"
+width="32"
+height="32"
+style="object-fit:cover;"
+>
+
+<div>
+
+<div class="fw-bold" style="font-size: 12px;">
+${u.nombre}
+</div>
+
+<div class="text-muted" style="font-size: 9px;">
+${getInst(u.email)}
+</div>
+
+</div>
+
+</div>
+
+<button
+class="btn-follow-sm${esSiguiendo ? ' siguiendo' : ''}"
+id="btn-sug-${u.id}"
+onclick="toggleSugerencia('${u.id}', this)"
+>
+${esSiguiendo ? '✔ Siguiendo' : 'Seguir'}
+</button>
+
+</div>
+`;
+}).join('');
+
+} catch(err) {
+  console.error('Error en sugerencias:', err.message);
+  const el = document.getElementById("listaSugerencias");
+  if (el) el.innerHTML = '<p class="text-muted small text-center">No disponible</p>';
+}
+
+}
+
+window.toggleSugerencia = async function(userId, btnEl) {
+  if (typeof FollowModule !== 'undefined') {
+    FollowModule.toggle(btnEl, sesion.id, userId);
+  }
+};
+
+// FUNCIÓN DEL FILTRO DE FECHAS //
+window.filtrarRapido = (periodo) => {
+  const hoy = new Date();
+  let fechaCalculada = null;
+
+  if (periodo === 'hoy') {
+    fechaCalculada = hoy.toISOString().split('T')[0];
+  } 
+  else if (periodo === 'semana') {
+    const s = new Date();
+    s.setDate(hoy.getDate() - 7);
+    fechaCalculada = s.toISOString().split('T')[0];
+  } 
+  else if (periodo === 'mes') {
+    const m = new Date();
+    m.setDate(hoy.getDate() - 30);
+    fechaCalculada = m.toISOString().split('T')[0];
+  }
+
+  // --- NUEVO: Cierra el menú automáticamente al hacer click ---
+  const menu = document.getElementById('menuFiltro');
+  if (menu) {
+    const bsCollapse = bootstrap.Collapse.getInstance(menu) || new bootstrap.Collapse(menu, { toggle: false });
+    bsCollapse.hide();
+  }
+
+  if (periodo === 'todos') {
+    cargarPublicaciones(null);
+  } else {
+    cargarPublicaciones(fechaCalculada);
+  }
+}; 
+  
+})();
+
+</script>
+</body>
+</html>
+</h5>
+
+<button
+type="button"
+class="btn-close btn-close-white"
+data-bs-dismiss="modal"
+></button>
+
+</div>
+
+<div class="modal-body">
+
+<textarea
+id="editPostText"
+class="form-control bg-dark border-0 text-white mb-3"
+rows="4"
+style="resize:none;border-radius:12px;"
+></textarea>
+
+<div id="editPreview"></div>
+
+<input
+type="file"
+id="editFile"
+hidden
+accept="image/*,video/*"
+>
+
+<div class="d-flex gap-2 mt-3">
+
+<label
+for="editFile"
+class="btn btn-outline-light btn-sm"
+>
+Cambiar archivo
+</label>
+
+<button
+id="btnRemoveCurrentMedia"
+class="btn btn-outline-danger btn-sm"
+>
+Quitar archivo
+</button>
+
+</div>
+
+</div>
+
+<div class="modal-footer border-secondary">
+
+<button
+class="btn btn-secondary"
+data-bs-dismiss="modal"
+>
+Cancelar
+</button>
+
+<button
+id="btnSaveEdit"
+class="btn btn-warning fw-bold"
+>
+Guardar cambios
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<body>
+
+<header class="header-main">
+  <div class="container-fluid px-lg-5">
+    <div class="d-flex align-items-center justify-content-between py-2">
+      <a href="inicioRed.html" class="d-flex align-items-center gap-2 text-decoration-none">
+        <div class="logo-mark">U</div>
+        <span class="fw-bold d-none d-sm-inline" style="letter-spacing: 1px; color: var(--text)">RED UNAM</span>
+      </a>
+
+      <div class="position-relative flex-grow-1 mx-4" style="max-width: 400px;">
+        <div class="search-container d-flex align-items-center">
+          <i class="bi bi-search text-muted me-2"></i>
+          <input type="text" id="inputBusqueda" class="form-control bg-transparent border-0 text-white p-0 shadow-none" placeholder="Buscar compañeros..." style="font-size: 14px;">
+        </div>
+        <div id="resultadosBusqueda" class="search-results shadow-lg"></div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="dropdown">
+          <a href="notificaciones.html" class="text-white position-relative fs-5" data-bs-toggle="dropdown">
+            <i class="bi bi-bell"></i>
+            <span id="badge-notificaciones" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 10px;">0</span>
+          </a>
+          <ul id="lista-notificaciones" class="dropdown-menu dropdown-menu-end shadow-lg p-2 mt-3" style="width: 300px; background: var(--surface2); border: 1px solid var(--border);">
+            <li class="text-center small text-muted p-3">Cargando...</li>
+          </ul>
+        </div>
+
+        <div id="authArea"></div>
+      </div>
+    </div>
+    
+    <nav class="d-flex gap-4 pb-1">
+      <a href="#" class="nav-link-custom active py-2">Inicio</a>
+      <a href="amigos.html" class="nav-link-custom py-2">Explorar</a>
+      <a href="#" id="btnFacultad" class="nav-link-custom py-2 text-warning">🎓 Mi Facultad</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container-fluid px-lg-5 mt-4">
+  <div class="row">
+    <div class="col-lg-3 d-none d-lg-block">
+      <div class="sticky-sidebar">
+        <h6 class="text-muted text-uppercase fw-bold mb-4 small" style="letter-spacing: 1px;">Sugerencias UNAM</h6>
+        <div id="listaSugerencias">
+            <div class="text-center p-3 small text-muted">Buscando comunidad...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="custom-card">
+        <h3 class="font-serif mb-3" style="font-family: 'DM Serif Display', serif; font-size: 1.2rem;">¿Qué quieres <span style="color: var(--gold);">compartir</span>?</h3>
+        <textarea id="postContent" class="form-control bg-dark border-0 text-white mb-3" rows="3" placeholder="Escribe algo para la comunidad..." style="border-radius: 12px; resize: none;"></textarea>
+        
+        <div id="filePreview" class="mb-3 text-center"></div>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <label for="postFile" class="btn btn-sm btn-outline-secondary border-0" style="cursor:pointer">
+            <i class="bi bi-camera-fill me-1"></i> Foto/Video
+            <input type="file" id="postFile" hidden accept="image/*,video/*">
+          </label>
+          <button id="btnPublicar" class="btn btn-primary px-4 fw-bold" style="background: linear-gradient(135deg, var(--accent), #0047ab); border: none; border-radius: 8px;">
+            Publicar
+          </button>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 my-4">
+        <hr class="flex-grow-1 opacity-10">
+        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 2px; font-size: 10px;">Recientes</span>
+        <hr class="flex-grow-1 opacity-10">
+      </div>
+
+      <div id="feedPublicaciones">
+        <div class="text-center p-5"><div class="spinner-border text-gold" style="color: var(--gold);"></div></div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 d-none d-lg-block">
+        <div class="sticky-sidebar">
+          <div class="custom-card text-center">
+            <h6 class="text-muted small fw-bold mb-3">MENSAJES DIRECTOS</h6>
+            <i class="bi bi-chat-heart text-gold mb-2 d-block" style="font-size: 2rem; color: var(--gold);"></i>
+            <p class="small text-muted">Próximamente: Chat Universitario en tiempo real.</p>
+          </div>
+          
+          <div class="custom-card mt-3 p-0 overflow-hidden">
+  <div class="d-flex justify-content-between align-items-center p-3 cursor-pointer" 
+    data-bs-toggle="collapse" 
+    data-bs-target="#menuFiltro" 
+    style="cursor: pointer;"
+  >
+    <h6 class="text-muted small fw-bold mb-0 text-uppercase" style="letter-spacing: 1px;">
+      <i class="bi bi-clock-history me-2 text-gold"></i>Filtrar publicaciones
+    </h6>
+    <i class="bi bi-chevron-down small text-muted"></i>
+  </div>
+
+  <div class="collapse" id="menuFiltro">
+    <div class="p-3 pt-0">
+      <div class="d-flex flex-column gap-2">
+        <button onclick="filtrarRapido('hoy')" class="btn btn-sm btn-outline-secondary text-white border-opacity-10 py-2" style="font-size: 11px; background: rgba(255,255,255,0.02)">Hoy</button>
+        <button onclick="filtrarRapido('semana')" class="btn btn-sm btn-outline-secondary text-white border-opacity-10 py-2" style="font-size: 11px; background: rgba(255,255,255,0.02)">Esta semana</button>
+        <button onclick="filtrarRapido('mes')" class="btn btn-sm btn-outline-secondary text-white border-opacity-10 py-2" style="font-size: 11px; background: rgba(255,255,255,0.02)">Este mes</button>
+        
+        <hr class="my-1 opacity-10">
+        
+        <button onclick="filtrarRapido('todos')" class="btn btn-sm btn-warning fw-bold py-2" style="font-size: 12px; border-radius: 8px;">
+          Ver todo el feed
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+          <div id="climaOInfo" class="mt-3 p-2 small text-muted text-center">
+            © 2026 Red UNAM - Hecho con ❤️ por Ingeniería
+          </div>
+        </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/conexion.js"></script>
+<script src="js/buscador.js"></script>
+<script src="js/seguir.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+(function() {
     // 1. SESIÓN GLOBAL ÚNICA
     const sesion = JSON.parse(localStorage.getItem("sesion"));
     if (!sesion) {
