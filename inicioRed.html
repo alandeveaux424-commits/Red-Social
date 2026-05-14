@@ -821,6 +821,7 @@ window.confirmarEditarComentario = async function (comentarioId) {
     // Actualizar DOM sin recargar todo
     document.getElementById(`texto-comentario-${comentarioId}`).textContent = nuevoTexto;
     document.getElementById(`edit-texto-${comentarioId}`).value = nuevoTexto;
+     if (btn) { btn.textContent = 'Guardar'; btn.disabled = false; }
     cancelarEditarComentario(comentarioId);
     delete comentarioEditState[comentarioId];
 
