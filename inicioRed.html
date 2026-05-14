@@ -10,110 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="style/follow.css">
-
-  <style>
-    :root {
-      --bg: #0a0c10;
-      --surface: #111318;
-      --surface2: #181c24;
-      --border: rgba(255,255,255,0.07);
-      --accent: #002f6c;
-      --gold: #c8a951;
-      --text: #e8eaf0;
-      --muted: #6b7280;
-      --danger: #e05252;
-      --radius: 14px;
-    }
-
-    body {
-      font-family: 'Sora', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,47,108,0.35) 0%, transparent 70%);
-      min-height: 100vh;
-    }
-
-    /* --- NAVIGATION --- */
-    .header-main {
-      position: sticky;
-      top: 0;
-      z-index: 1050;
-      background: rgba(10,12,16,0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .logo-mark {
-      width: 34px; height: 34px;
-      background: linear-gradient(135deg, var(--accent), #0047ab);
-      border-radius: 8px;
-      display: grid; place-items: center;
-      font-family: 'DM Serif Display', serif;
-      color: var(--gold);
-      box-shadow: 0 0 18px rgba(0,47,108,0.6);
-      text-decoration: none;
-    }
-
-    .search-container {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 6px 14px;
-      max-width: 320px;
-      transition: 0.2s;
-    }
-    .search-container:focus-within { border-color: var(--gold); }
-    
-    .search-results {
-      position: absolute; top: 110%; left: 0; right: 0;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      z-index: 1000;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    /* --- LAYOUT --- */
-    .sticky-sidebar { position: sticky; top: 90px; height: calc(100vh - 110px); overflow-y: auto; }
-    .sticky-sidebar::-webkit-scrollbar { display: none; }
-
-    /* --- CARDS & POSTS --- */
-    .custom-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-    }
-
-    .post-media { width: 100%; border-radius: 10px; margin-top: 12px; border: 1px solid var(--border); }
-    
-    .btn-interaction {
-      background: none; border: none; color: var(--muted);
-      font-size: 0.9rem; transition: 0.2s;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .btn-interaction:hover { color: var(--gold); }
-    .btn-interaction.active { color: var(--danger); }
-
-    .nav-link-custom {
-      color: var(--muted); font-weight: 600; font-size: 14px;
-      transition: 0.2s; border-bottom: 2px solid transparent;
-    }
-    .nav-link-custom:hover, .nav-link-custom.active { color: var(--gold); border-bottom-color: var(--gold); }
-
-    .official-badge {
-      background: var(--gold); color: #000;
-      border-radius: 50%; padding: 2px; font-size: 8px; margin-left: 5px;
-    }
-
-    .comment-box { background: var(--surface2); border-radius: 8px; padding: 10px; margin-top: 10px; }
-    .hover-result:hover { background: rgba(200, 169, 100, 0.1) !important; transition: 0.2s; }
-    #resultadosBusqueda::-webkit-scrollbar { width: 6px; }
-    #resultadosBusqueda::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
-  </style>
+  <link rel="stylesheet" href="style/pagina.css">
 </head>
   <!-- MODAL EDITAR POST -->
 <div
@@ -535,6 +432,39 @@ removeBtn.classList.add("d-none");
 
 };
 
+ // --- ACCIONES ---
+  window.marcarLeidas = async () => {
+    await window.supabaseClient.from('notificaciones').update({ leida: true }).eq('usuario_id', sesion.id);
+    cargarNotificaciones();
+  };
+
+  window.gestionarLike = async (postId, currentLikes, autorId) => {
+    const { data: existe } = await window.supabaseClient.from('likes_usuarios').select('id').eq('user_id', sesion.id).eq('post_id', postId).maybeSingle();
+    if (existe) {
+      await window.supabaseClient.from('likes_usuarios').delete().eq('id', existe.id);
+      await window.supabaseClient.from('publicaciones').update({ likes_count: Math.max(0, currentLikes - 1) }).eq('id', postId);
+    } else {
+      await window.supabaseClient.from('likes_usuarios').insert([{ user_id: sesion.id, post_id: postId }]);
+      await window.supabaseClient.from('publicaciones').update({ likes_count: currentLikes + 1 }).eq('id', postId);
+      if(autorId !== sesion.id) {
+        await window.supabaseClient.from('notificaciones').insert([{ usuario_id: autorId, emisor_nombre: sesion.nombre, tipo: "le dio me gusta a tu post", leida: false }]);
+      }
+    }
+    cargarPublicaciones();
+  };
+
+  window.enviarComentario = async (postId, autorId) => {
+    const input = document.getElementById(`input-comentario-${postId}`);
+    const texto = input.value.trim();
+    if (!texto) return;
+    await window.supabaseClient.from('comentarios').insert([{ publicacion_id: postId, autor_id: sesion.id, autor_comentario_nombre: sesion.nombre, contenido_comentario: texto }]);
+    if(autorId !== sesion.id) {
+      await window.supabaseClient.from('notificaciones').insert([{ usuario_id: autorId, emisor_nombre: sesion.nombre, tipo: "comentó tu post", leida: false }]);
+    }
+    input.value = "";
+    cargarPublicaciones();
+  };
+
 // ─────────────────────────────────────────────────────────────
 // PUBLICAR
 // ─────────────────────────────────────────────────────────────
@@ -626,16 +556,14 @@ btn.innerText = "Publicar";
 
 async function cargarPublicaciones(fechaInicio = null) {
   const feed = document.getElementById("feedPublicaciones");
-  
-  // Spinner original
   feed.innerHTML = `<div class="text-center p-5"><div class="spinner-border" style="color:var(--gold)"></div></div>`;
 
+  // 1. MEJORA EN LA CONSULTA: Traemos los likes_usuarios para saber si yo (sesion.id) ya di like
   let query = window.supabaseClient
     .from('publicaciones')
-    .select('*')
+    .select('*, likes_usuarios(user_id)') // Esto trae los IDs de quienes dieron like
     .order('creado_a_las', { ascending: false });
 
-  // Si hay filtro, lo aplicamos
   if (fechaInicio) {
     query = query.gte('creado_a_las', `${fechaInicio}T00:00:00Z`);
   }
@@ -648,29 +576,32 @@ async function cargarPublicaciones(fechaInicio = null) {
   }
 
   feed.innerHTML = "";
-
   if (!posts.length) {
     feed.innerHTML = `<div class="text-center p-5 text-muted small">No hay publicaciones en este periodo.</div>`;
     return;
   }
 
-  // --- TU LÓGICA ORIGINAL DE RENDERIZADO (NO CAMBIA) ---
   posts.forEach(p => {
     const esMio = p.autor_id === sesion.id;
     const fecha = new Date(p.creado_a_las).toLocaleString();
+    
+    // 2. VERIFICACIÓN: ¿El usuario actual está en la lista de likes de este post?
+    const userHasLiked = p.likes_usuarios?.some(like => like.user_id === sesion.id);
+    
     let media = "";
-
     if (p.archivo_url) {
       if (p.tipo_archivo?.startsWith("video")) {
-        media = `<video src="${p.archivo_url}" controls class="post-media" style="max-height:650px;object-fit:contain;background:black;"></video>`;
+        media = `<video src="${p.archivo_url}" controls class="post-media" style="max-height:650px;width:100%;object-fit:contain;background:black;border-radius:12px;"></video>`;
       } else {
-        media = `<img src="${p.archivo_url}" class="post-media" style="max-height:650px;object-fit:contain;background:black;">`;
+        media = `<img src="${p.archivo_url}" class="post-media" style="max-height:650px;width:100%;object-fit:contain;background:black;border-radius:12px;">`;
       }
     }
 
     const div = document.createElement("div");
-    div.className = "custom-card";
+    div.className = "custom-card mb-4"; // Añadí un margen inferior
     div.id = `post-${p.id}`;
+    
+    // TODO EL HTML DENTRO DE LAS COMILLAS INVERTIDAS
     div.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2" style="cursor:pointer" onclick="location.href='perfil.html?id=${p.autor_id}'">
@@ -688,7 +619,27 @@ async function cargarPublicaciones(fechaInicio = null) {
         ` : ''}
       </div>
       <p style="line-height:1.6;">${p.contenido_texto || ''}</p>
-      ${media}`;
+      ${media}
+
+      <div class="d-flex align-items-center gap-3 mt-3 pt-2 border-top border-secondary border-opacity-10">
+        <button 
+          onclick="gestionarLike(${p.id}, ${p.likes_count || 0}, '${p.autor_id}')" 
+          class="btn btn-sm ${userHasLiked ? 'text-warning' : 'text-white'} p-0 d-flex align-items-center gap-1 shadow-none"
+        >
+          <i class="bi ${userHasLiked ? 'bi-heart-fill' : 'bi-heart'}"></i>
+          <span class="small">${p.likes_count || 0}</span>
+        </button>
+        
+        <div class="flex-grow-1">
+          <div class="input-group input-group-sm">
+            <input type="text" id="input-comentario-${p.id}" class="form-control bg-dark border-0 text-white" placeholder="Escribe un comentario..." style="font-size: 11px;">
+            <button onclick="enviarComentario(${p.id}, '${p.autor_id}')" class="btn btn-outline-warning border-0">
+              <i class="bi bi-send"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
     feed.appendChild(div);
   });
 }
