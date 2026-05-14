@@ -1,16 +1,3 @@
-/**
- * seguir.js — Módulo reutilizable de seguir/seguidores
- * Depende de: window.supabaseClient (conexion.js)
- *
- * API pública:
- *   FollowModule.cargarContadores(perfilId)
- *   FollowModule.actualizarBoton(btnEl, sesionId, perfilId)
- *   FollowModule.toggle(btnEl, sesionId, perfilId, onDone)
- *   FollowModule.abrirModal(tipo, perfilId, sesionId)
- *   FollowModule.cerrarModal()
- *   FollowModule.inyectarModal()   ← llama una vez al cargar la página
- */
-
 const FollowModule = (() => {
 
   // ── MODAL HTML ──────────────────────────────────────────────
