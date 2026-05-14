@@ -239,9 +239,14 @@ Guardar cambios
 <script>
 
 (function() {
-
-const sesion = JSON.parse(localStorage.getItem("sesion"));
-const BUCKET = 'publicaciones-media';
+    // 1. SESIÓN GLOBAL ÚNICA
+    const sesion = JSON.parse(localStorage.getItem("sesion"));
+    if (!sesion) {
+        window.location.replace("index.html");
+        return;
+    }
+    window.sesion = sesion; 
+    const BUCKET = 'publicaciones-media';
 
 function validarSesion() {
 
@@ -280,22 +285,23 @@ return user.foto_perfil ||
 // INIT
 // ─────────────────────────────────────────────────────────────
 
+// Este es el ÚNICO init que debe existir (línea 134 aprox)
 async function init() {
+  if (typeof FollowModule !== 'undefined') FollowModule.inyectarModal();
+  renderUserHeader();
+  await cargarPublicaciones(); // Esto es lo que trae los posts y comentarios
+  cargarNotificaciones();
+  cargarSugerencias();
 
-if (typeof FollowModule !== 'undefined') FollowModule.inyectarModal();
-
-renderUserHeader();
-
-await cargarPublicaciones();
-
-cargarNotificaciones();
-
-cargarSugerencias();
-
-setupSearch();
-
+  // Esta protección es clave para que no truene tu página
+  if (typeof setupSearch === 'function') {
+    setupSearch();
+  } else {
+    console.warn("Buscador no disponible aún.");
+  }
 }
 
+// Se llama una sola vez
 init();
 
 // ─────────────────────────────────────────────────────────────
@@ -432,7 +438,9 @@ removeBtn.classList.add("d-none");
 
 };
 
- // --- ACCIONES ---
+ // ─────────────────────────────────────────────────────────────
+// ACCIONES
+// ─────────────────────────────────────────────────────────────
   window.marcarLeidas = async () => {
     await window.supabaseClient.from('notificaciones').update({ leida: true }).eq('usuario_id', sesion.id);
     cargarNotificaciones();
@@ -464,6 +472,34 @@ removeBtn.classList.add("d-none");
     input.value = "";
     cargarPublicaciones();
   };
+
+  // Asegúrate de que esto esté dentro del script pero accesible
+    window.eliminarComentario = async (comentarioId) => {
+    const sesion = JSON.parse(localStorage.getItem("sesion"));
+
+    if (!sesion) return;
+    if (!confirm("¿Eliminar comentario?")) return;
+
+    try {
+        const { error } = await window.supabaseClient
+            .from("comentarios")
+            .delete()
+            .eq("id", comentarioId)
+            .eq("autor_id", sesion.id);
+
+        if (error) {
+            console.error(error);
+            alert("Error al borrar: " + error.message);
+            return;
+        }
+
+        await cargarPublicaciones();
+
+    } catch (err) {
+        console.error(err);
+        alert("No se pudo eliminar el comentario");
+    }
+};
 
 // ─────────────────────────────────────────────────────────────
 // PUBLICAR
@@ -558,10 +594,9 @@ async function cargarPublicaciones(fechaInicio = null) {
   const feed = document.getElementById("feedPublicaciones");
   feed.innerHTML = `<div class="text-center p-5"><div class="spinner-border" style="color:var(--gold)"></div></div>`;
 
-  // 1. MEJORA EN LA CONSULTA: Traemos los likes_usuarios para saber si yo (sesion.id) ya di like
   let query = window.supabaseClient
     .from('publicaciones')
-    .select('*, likes_usuarios(user_id)') // Esto trae los IDs de quienes dieron like
+    .select('*, likes_usuarios(user_id), comentarios(*)') 
     .order('creado_a_las', { ascending: false });
 
   if (fechaInicio) {
@@ -576,67 +611,81 @@ async function cargarPublicaciones(fechaInicio = null) {
   }
 
   feed.innerHTML = "";
-  if (!posts.length) {
-    feed.innerHTML = `<div class="text-center p-5 text-muted small">No hay publicaciones en este periodo.</div>`;
-    return;
-  }
-
+  
   posts.forEach(p => {
-    const esMio = p.autor_id === sesion.id;
-    const fecha = new Date(p.creado_a_las).toLocaleString();
-    
-    // 2. VERIFICACIÓN: ¿El usuario actual está en la lista de likes de este post?
-    const userHasLiked = p.likes_usuarios?.some(like => like.user_id === sesion.id);
-    
-    let media = "";
+    // 1. DEFINICIÓN DE VARIABLES DE ESTADO (Mantenlas aquí arriba)
+    const esMio = p.autor_id === window.sesion.id;
+    const userHasLiked = p.likes_usuarios?.some(like => like.user_id === window.sesion.id) || false;
+    const likesCount = p.likes_count || 0;
+
+    // 2. GENERAR HTML DE COMENTARIOS
+    const htmlComentarios = p.comentarios?.map(com => {
+  const soyAutorComentario = com.autor_id === sesion.id;
+
+  return `
+    <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded border-0" 
+         style="background-color: rgba(255,255,255,0.05) !important; color: #eee !important;">
+
+      <div style="font-size: 11px;">
+        <span class="fw-bold text-warning">${com.autor_comentario_nombre}:</span> 
+        <span>${com.contenido_comentario}</span>
+      </div>
+
+      ${soyAutorComentario ? `
+        <button
+          class="btn btn-sm btn-danger"
+          onclick="eliminarComentario(${com.id})"
+          <i class="bi bi-trash"></i>
+        </button>
+      ` : ''}
+
+    </div>
+  `;
+}).join('') || '<p class="text-muted small text-center my-2" style="font-size: 10px;">Sin comentarios</p>';
+
+    // 3. GENERAR MEDIA (Imagen/Video)
+    let mediaHTML = "";
     if (p.archivo_url) {
-      if (p.tipo_archivo?.startsWith("video")) {
-        media = `<video src="${p.archivo_url}" controls class="post-media" style="max-height:650px;width:100%;object-fit:contain;background:black;border-radius:12px;"></video>`;
-      } else {
-        media = `<img src="${p.archivo_url}" class="post-media" style="max-height:650px;width:100%;object-fit:contain;background:black;border-radius:12px;">`;
-      }
+      const isVideo = p.tipo_archivo?.startsWith("video");
+      mediaHTML = isVideo 
+        ? `<video src="${p.archivo_url}" controls class="post-media w-100 rounded-3" style="max-height:450px; background:black;"></video>`
+        : `<img src="${p.archivo_url}" class="post-media w-100 rounded-3" style="max-height:450px; object-fit:contain; background:black;">`;
     }
 
+    // 4. CONSTRUIR EL POST
     const div = document.createElement("div");
-    div.className = "custom-card mb-4"; // Añadí un margen inferior
-    div.id = `post-${p.id}`;
-    
-    // TODO EL HTML DENTRO DE LAS COMILLAS INVERTIDAS
+    div.className = "custom-card mb-4";
+    div.id = `post-${p.id}`; // Agregamos ID para manipulación directa si es necesario
     div.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-2" style="cursor:pointer" onclick="location.href='perfil.html?id=${p.autor_id}'">
-          <img src="${p.autor_foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.autor_nombre)}&background=random`}" class="rounded-circle" width="38" height="38" style="object-fit:cover;">
+        <div class="d-flex align-items-center gap-2">
+          <img src="${p.autor_foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.autor_nombre)}&background=random`}" class="rounded-circle" width="35" height="35" style="object-fit:cover;">
           <div>
             <h6 class="mb-0 fw-bold small">${p.autor_nombre}</h6>
-            <small class="text-muted" style="font-size:10px;">${fecha}</small>
+            <small class="text-muted" style="font-size:9px;">${new Date(p.creado_a_las).toLocaleString()}</small>
           </div>
         </div>
-        ${esMio ? `
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-warning" onclick="editarPost(${p.id})"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-danger" onclick="eliminarPost(${p.id})"><i class="bi bi-trash"></i></button>
-          </div>
-        ` : ''}
+        ${esMio ? `<button class="btn btn-sm text-danger" onclick="eliminarPost(${p.id})"><i class="bi bi-trash"></i></button>` : ''}
       </div>
-      <p style="line-height:1.6;">${p.contenido_texto || ''}</p>
-      ${media}
+      
+      <p class="small mb-3">${p.contenido_texto || ''}</p>
+      ${mediaHTML}
 
-      <div class="d-flex align-items-center gap-3 mt-3 pt-2 border-top border-secondary border-opacity-10">
-        <button 
-          onclick="gestionarLike(${p.id}, ${p.likes_count || 0}, '${p.autor_id}')" 
-          class="btn btn-sm ${userHasLiked ? 'text-warning' : 'text-white'} p-0 d-flex align-items-center gap-1 shadow-none"
-        >
+      <div class="mt-3">
+        <button onclick="gestionarLike(${p.id}, ${likesCount}, '${p.autor_id}')" 
+                class="btn btn-sm ${userHasLiked ? 'text-warning' : 'text-white'} p-0 d-flex align-items-center gap-1 shadow-none">
           <i class="bi ${userHasLiked ? 'bi-heart-fill' : 'bi-heart'}"></i>
-          <span class="small">${p.likes_count || 0}</span>
+          <span class="small">${likesCount}</span>
         </button>
-        
-        <div class="flex-grow-1">
-          <div class="input-group input-group-sm">
-            <input type="text" id="input-comentario-${p.id}" class="form-control bg-dark border-0 text-white" placeholder="Escribe un comentario..." style="font-size: 11px;">
-            <button onclick="enviarComentario(${p.id}, '${p.autor_id}')" class="btn btn-outline-warning border-0">
-              <i class="bi bi-send"></i>
-            </button>
-          </div>
+      </div>
+
+      <div class="mt-3 p-2 rounded" style="background: rgba(0,0,0,0.2);">
+        <div id="lista-comentarios-${p.id}">
+          ${htmlComentarios}
+        </div>
+        <div class="input-group input-group-sm mt-2">
+          <input type="text" id="input-comentario-${p.id}" class="form-control bg-dark border-0 text-white" placeholder="Comentar..." style="font-size: 10px;">
+          <button onclick="enviarComentario(${p.id}, '${p.autor_id}')" class="btn btn-warning border-0"><i class="bi bi-send-fill"></i></button>
         </div>
       </div>
     `;
