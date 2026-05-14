@@ -6,6 +6,7 @@
   <title>Mi Perfil — Red UNAM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style/follow.css">
   <style>
     /* ── TOKENS (idénticos a paginaprincipal) ── */
     :root {
@@ -477,7 +478,7 @@
       <li><a href="inicioRed.html">Inicio</a></li>
       <li><a href="#">Explorar</a></li>
       <li><a href="#">Mensajes</a></li>
-      <li><a href="perfil.html" class="active">Mi Perfil</a></li>
+      <li><a id="nav-mi-perfil" href="perfil.html" class="active">Mi Perfil</a></li>
     </ul>
   </nav>
 </header>
@@ -512,6 +513,14 @@
           <div class="stat-num" id="stat-likes">0</div>
           <div class="stat-label">Likes recibidos</div>
         </div>
+        <div class="stat stat-clickable" id="stat-siguiendo-wrap" onclick="abrirModal('siguiendo')">
+          <div class="stat-num" id="stat-siguiendo">0</div>
+          <div class="stat-label">Siguiendo</div>
+        </div>
+        <div class="stat stat-clickable" id="stat-seguidores-wrap" onclick="abrirModal('seguidores')">
+          <div class="stat-num" id="stat-seguidores">0</div>
+          <div class="stat-label">Seguidores</div>
+        </div>
         <div class="stat">
           <div class="stat-num" id="stat-miembro">—</div>
           <div class="stat-label">Miembro desde</div>
@@ -522,6 +531,10 @@
       <div class="profile-actions">
         <button class="btn-edit" id="btn-toggle-edit">✏️ Editar perfil</button>
         <button class="btn-logout" id="btn-logout">↪ Cerrar sesión</button>
+        <!-- Botón Seguir (solo visible en perfiles ajenos) -->
+        <button class="btn-follow" id="btn-follow" style="display:none" onclick="toggleSeguir()">
+          ➕ Seguir
+        </button>
       </div>
     </div>
   </div>
@@ -639,6 +652,7 @@
 <!-- ── SCRIPTS ── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/conexion.js"></script>
+<script src="js/seguir.js"></script>
 <script>
 (function () {
 
@@ -957,7 +971,14 @@
   });
 
   // ── INIT ──
-  document.addEventListener('DOMContentLoaded', async () => { 
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Inyectar modal reutilizable
+    FollowModule.inyectarModal();
+
+    // Fijar link "Mi Perfil" al perfil del usuario logueado
+    const navMiPerfil = document.getElementById('nav-mi-perfil');
+    if (navMiPerfil) navMiPerfil.href = `perfil.html?id=${sesionLocal.id}`;
+
     // Primero cargar datos del ID visitado (sea el mío o de otro)
     try {
       const { data, error } = await window.supabaseClient.from('usuarios').select('*').eq('id', idPerfilVisitado).single();
@@ -973,8 +994,26 @@
     
     cargarMisPublicaciones();
     if (esMiPropioPerfil) cargarSesiones();
+
+    // Cargar contadores de seguidores
+    await FollowModule.cargarContadores(idPerfilVisitado);
+
+    // Si es perfil ajeno, mostrar botón y revisar estado
+    if (!esMiPropioPerfil) {
+      const btn = document.getElementById('btn-follow');
+      btn.style.display = 'inline-flex';
+      await FollowModule.actualizarBoton(btn, sesionLocal.id, idPerfilVisitado);
+      btn.onclick = () => FollowModule.toggle(btn, sesionLocal.id, idPerfilVisitado, () => {
+        FollowModule.cargarContadores(idPerfilVisitado);
+      });
+    }
   });
-  
+
+  // ── 8. DELEGACIÓN AL MÓDULO REUTILIZABLE ──
+  // Los onclick de los stats llaman a FollowModule desde el HTML
+  window.abrirModal  = (tipo) => FollowModule.abrirModal(tipo, idPerfilVisitado);
+  window.cerrarModal = ()     => FollowModule.cerrarModal();
+
 })();
 </script>
 </body>
