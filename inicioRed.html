@@ -474,7 +474,7 @@ removeBtn.classList.add("d-none");
 //
 //  Columnas reales en Supabase:
 //    comentarios: id, publicacion_id, autor_id, autor_comentario,
-//                 contenido_comen, creado_a_las, parent_id
+//                 contenido_comentario, creado_a_las, parent_id
 //    publicaciones: id, autor_foto, autor_nombre, autor_id, ...
 // ═══════════════════════════════════════════════════════════════════
 
@@ -542,7 +542,7 @@ function renderComentarioHTML(c, respuestas = []) {
               <span style="font-size:12px;font-weight:700;color:var(--text);">${c.autor_comentario_nombre}</span>
               <span style="font-size:10px;color:var(--muted);">${fecha}</span>
             </div>
-            <p style="font-size:13px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${c.id}">${c.contenido_comen}</p>
+            <p style="font-size:13px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${c.id}">${c.contenido_comentario}</p>
           </div>
           <div style="display:flex;gap:12px;margin-top:5px;padding-left:4px;">
             <button onclick="mostrarInputRespuesta(${c.id}, ${c.publicacion_id}, '${c.autor_comentario_nombre}')"
@@ -569,7 +569,7 @@ function renderComentarioHTML(c, respuestas = []) {
           <textarea id="edit-texto-${c.id}" rows="2"
             style="width:100%;background:var(--surface2);border:1px solid var(--gold);border-radius:8px;
                    padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;outline:none;"
-          >${c.contenido_comen}</textarea>
+          >${c.contenido_comentario}</textarea>
           <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end;">
             <button onclick="cancelarEditarComentario(${c.id})"
               style="background:none;border:1px solid var(--border);border-radius:7px;padding:5px 14px;
@@ -633,7 +633,7 @@ function renderRespuestaHTML(r) {
               <span style="font-size:11px;font-weight:700;color:var(--text);">${r.autor_comentario_nombre}</span>
               <span style="font-size:10px;color:var(--muted);">${fecha}</span>
             </div>
-            <p style="font-size:12px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${r.id}">${r.contenido_comen}</p>
+            <p style="font-size:12px;color:#c9cdd8;margin:0;line-height:1.5;" id="texto-comentario-${r.id}">${r.contenido_comentario}</p>
           </div>
           <div style="display:flex;gap:10px;margin-top:4px;padding-left:4px;">
             ${esMio ? `
@@ -650,7 +650,7 @@ function renderRespuestaHTML(r) {
           <textarea id="edit-texto-${r.id}" rows="2"
             style="width:100%;background:var(--surface2);border:1px solid var(--gold);border-radius:8px;
                    padding:7px 11px;color:var(--text);font-family:inherit;font-size:12px;resize:none;outline:none;"
-          >${r.contenido_comen}</textarea>
+          >${r.contenido_comentario}</textarea>
           <div style="display:flex;gap:8px;margin-top:5px;justify-content:flex-end;">
             <button onclick="cancelarEditarComentario(${r.id})"
               style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 12px;
@@ -684,7 +684,7 @@ window.enviarComentario = async function (inputEl) {
         publicacion_id:   postId,
         autor_id:         sesion.id,
         autor_comentario_nombre: sesion.nombre,
-        contenido_comen:  texto,
+        contenido_comentario:  texto,
         parent_id:        null
       }]);
  
@@ -697,7 +697,7 @@ window.enviarComentario = async function (inputEl) {
             publicacion_id:   postId,
             autor_id:         sesion.id,
             autor_comentario_nombre: sesion.nombre,
-            contenido_comen:  texto
+            contenido_comentario:  texto
           }]);
         if (e2) throw e2;
       } else {
@@ -760,7 +760,7 @@ window.enviarRespuesta = async function (parentId, postId) {
     publicacion_id:   postId,
     autor_id:         sesion.id,
     autor_comentario_nombre: sesion.nombre,
-    contenido_comen:  texto,
+    contenido_comentario:  texto,
     parent_id:        parentId
   }]);
   if (error) { console.error(error.message); return; }
@@ -813,7 +813,7 @@ window.confirmarEditarComentario = async function (comentarioId) {
   try {
     const { error } = await window.supabaseClient
       .from('comentarios')
-      .update({ contenido_comen: nuevoTexto })
+      .update({ contenido_comentario: nuevoTexto })
       .eq('id', comentarioId)
       .eq('autor_id', sesion.id);
     if (error) throw error;
